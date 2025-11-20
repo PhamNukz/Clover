@@ -1,0 +1,56 @@
+═══════════════════════════════════════════════════════════════
+  COMANDOS PARA SUBIR EL PROYECTO A GITHUB
+═══════════════════════════════════════════════════════════════
+
+PASO 1: Inicializar Git
+────────────────────────
+git init
+
+PASO 2: Agregar todos los archivos
+───────────────────────────────────
+git add .
+
+PASO 3: Hacer el primer commit
+───────────────────────────────
+git commit -m "Initial commit: Sistema EPP - Gestión de Inventario"
+
+PASO 4: Conectar con GitHub (reemplaza TU-USUARIO y NOMBRE-REPO)
+─────────────────────────────────────────────────────────────────
+git remote add origin https://github.com/TU-USUARIO/NOMBRE-REPO.git
+
+PASO 5: Cambiar a la rama main
+───────────────────────────────
+git branch -M main
+
+PASO 6: Subir el código a GitHub
+─────────────────────────────────
+git push -u origin main
+
+═══════════════════════════════════════════════════════════════
+  COMANDOS PARA FUTUROS CAMBIOS
+═══════════════════════════════════════════════════════════════
+
+Ver el estado de los archivos:
+──────────────────────────────
+git status
+
+Agregar archivos modificados:
+─────────────────────────────
+git add .
+
+Hacer commit:
+─────────────
+git commit -m "Descripción de los cambios"
+
+Subir cambios:
+──────────────
+git push
+
+Ver historial:
+──────────────
+git log
+
+═══════════════════════════════════════════════════════════════
+
+Para más información, consulta el archivo GUIA_GITHUB.md
+
