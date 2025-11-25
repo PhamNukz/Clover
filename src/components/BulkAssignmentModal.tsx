@@ -18,7 +18,7 @@ interface BulkAssignmentModalProps {
   onSetBulkEquipment: (equipment: string) => void;
   onProceedToCategories: () => void;
   onGoBack: () => void;
-  onUpdateBulkCategory: (personName: string, category: string) => void;
+  onUpdateBulkAssignment: (personName: string, field: 'category' | 'quantity', value: string | number) => void;
   onSetBulkDate: (date: string) => void;
   onCompleteBulkAssignment: () => void;
 }
@@ -39,7 +39,7 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
   onSetBulkEquipment,
   onProceedToCategories,
   onGoBack,
-  onUpdateBulkCategory,
+  onUpdateBulkAssignment,
   onSetBulkDate,
   onCompleteBulkAssignment
 }) => {
@@ -47,15 +47,15 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold">
+          <h3 className="text-2xl font-bold text-gray-900">
             {bulkAssignmentStep === 'select-people' && 'Paso 1: Seleccionar Personas y Equipo'}
-            {bulkAssignmentStep === 'assign-categories' && 'Paso 2: Asignar Categorías'}
+            {bulkAssignmentStep === 'assign-categories' && 'Paso 2: Asignar Detalles'}
           </h3>
-          <button 
+          <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X size={24} />
           </button>
@@ -64,11 +64,11 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
         {bulkAssignmentStep === 'select-people' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2">Seleccionar Equipo</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Seleccionar Equipo</label>
               <select
                 value={bulkEquipment}
                 onChange={(e) => onSetBulkEquipment(e.target.value)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500"
               >
                 <option value="">Seleccionar equipo</option>
                 {inventory.map(item => (
@@ -78,29 +78,29 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Seleccionar Personas (puede seleccionar múltiples)</label>
-              <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Seleccionar Personas (puede seleccionar múltiples)</label>
+              <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2 bg-gray-50">
                 {allEmployees.map(emp => (
-                  <label key={emp} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  <label key={emp} className="flex items-center space-x-2 p-2 hover:bg-clover-50 rounded cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={selectedPeople.includes(emp)}
                       onChange={() => onTogglePersonSelection(emp)}
-                      className="w-4 h-4"
+                      className="w-4 h-4 text-clover-600"
                     />
-                    <span>{emp}</span>
+                    <span className="text-gray-900">{emp}</span>
                   </label>
                 ))}
               </div>
-              
+
               {selectedPeople.length > 0 && (
-                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">
+                <div className="mt-3 p-3 bg-clover-50 rounded-lg border border-clover-200">
+                  <p className="text-sm font-semibold text-clover-900 mb-2">
                     Personas seleccionadas ({selectedPeople.length}):
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {selectedPeople.map(person => (
-                      <span key={person} className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                      <span key={person} className="bg-clover-600 text-white px-3 py-1 rounded-full text-sm">
                         {person}
                       </span>
                     ))}
@@ -112,14 +112,14 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
             <div className="flex justify-end space-x-2 pt-4">
               <button
                 onClick={onClose}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={onProceedToCategories}
                 disabled={selectedPeople.length === 0 || !bulkEquipment}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-clover-600 text-black rounded-lg hover:bg-clover-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg"
               >
                 Siguiente
               </button>
@@ -129,64 +129,75 @@ const BulkAssignmentModal: React.FC<BulkAssignmentModalProps> = ({
 
         {bulkAssignmentStep === 'assign-categories' && (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="font-semibold text-blue-900">Equipo: {bulkEquipment}</p>
-              <p className="text-sm text-blue-700">Personas seleccionadas: {selectedPeople.length}</p>
+            <div className="bg-clover-50 border border-clover-200 rounded-lg p-4 mb-4">
+              <p className="font-semibold text-clover-900">Equipo: {bulkEquipment}</p>
+              <p className="text-sm text-clover-700">Personas seleccionadas: {selectedPeople.length}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Fecha de Entrega</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Fecha de Entrega</label>
               <input
                 type="date"
                 value={bulkDate}
                 onChange={(e) => onSetBulkDate(e.target.value)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500"
               />
             </div>
 
-            {needsCategorySelection ? (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Asignar categoría para cada persona</label>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {bulkAssignments.map((ba, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                      <span className="font-medium min-w-[150px]">{ba.personName}</span>
-                      <select
-                        value={ba.category}
-                        onChange={(e) => onUpdateBulkCategory(ba.personName, e.target.value)}
-                        className="flex-1 border rounded px-3 py-2"
-                      >
-                        <option value="">Seleccionar categoría</option>
-                        {selectedProduct?.categories.map(cat => (
-                          <option key={cat.id} value={cat.name}>{cat.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Detalles de Asignación</label>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-gray-600 px-3">
+                  <div className="col-span-4">Persona</div>
+                  <div className="col-span-5">Talla/Categoría</div>
+                  <div className="col-span-3">Cantidad</div>
                 </div>
+                {bulkAssignments.map((ba, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50 items-center">
+                    <div className="col-span-4 font-medium text-gray-900 truncate" title={ba.personName}>
+                      {ba.personName}
+                    </div>
+                    <div className="col-span-5">
+                      {needsCategorySelection ? (
+                        <select
+                          value={ba.category}
+                          onChange={(e) => onUpdateBulkAssignment(ba.personName, 'category', e.target.value)}
+                          className="w-full border border-gray-300 rounded px-2 py-1 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500 text-sm"
+                        >
+                          <option value="">Seleccionar</option>
+                          {selectedProduct?.categories.map(cat => (
+                            <option key={cat.id} value={cat.name}>{cat.name} (Stock: {cat.stock})</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-gray-700 text-sm">{ba.category}</span>
+                      )}
+                    </div>
+                    <div className="col-span-3">
+                      <input
+                        type="number"
+                        min="1"
+                        value={ba.quantity || 1}
+                        onChange={(e) => onUpdateBulkAssignment(ba.personName, 'quantity', parseInt(e.target.value) || 1)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-900">
-                  Este equipo tiene una sola categoría: <span className="font-bold">{selectedProduct?.categories[0].name}</span>
-                </p>
-                <p className="text-sm text-green-700 mt-1">
-                  Se asignará automáticamente a todas las personas seleccionadas.
-                </p>
-              </div>
-            )}
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <button
                 onClick={onGoBack}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors"
               >
                 Atrás
               </button>
               <button
                 onClick={onCompleteBulkAssignment}
                 disabled={!bulkDate || (needsCategorySelection && bulkAssignments.some(ba => !ba.category))}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-clover-600 text-black rounded-lg hover:bg-clover-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg"
               >
                 Registrar Entregas
               </button>

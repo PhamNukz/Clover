@@ -13,6 +13,7 @@ interface InventoryProps {
   searchEmployee: string;
   allEmployees: string[];
   onDeleteProduct: (id: string) => void;
+  onEditProduct: (product: InventoryItem) => void;
   onDeleteAssignment: (id: string) => void;
   onSelectEmployee: (employee: string) => void;
   onSearchEmployee: (search: string) => void;
@@ -29,6 +30,7 @@ const Inventory: React.FC<InventoryProps> = ({
   searchEmployee,
   allEmployees,
   onDeleteProduct,
+  onEditProduct,
   onDeleteAssignment,
   onSelectEmployee,
   onSearchEmployee,
@@ -36,30 +38,28 @@ const Inventory: React.FC<InventoryProps> = ({
   onStartBulkAssignment
 }) => {
   return (
-    <div className="p-8">
+    <div className="p-8 min-h-full">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">Inventario</h2>
+        <h2 className="text-3xl font-bold text-gray-900">Inventario</h2>
       </div>
-      
+
       {/* Tabs */}
-      <div className="flex space-x-4 mb-6 border-b">
+      <div className="flex space-x-4 mb-6 border-b border-gray-200">
         <button
           onClick={() => setActiveInventoryTab('stock')}
-          className={`px-4 py-2 font-semibold ${
-            activeInventoryTab === 'stock'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600'
-          }`}
+          className={`px-4 py-2 font-semibold transition ${activeInventoryTab === 'stock'
+              ? 'border-b-2 border-clover-600 text-clover-600'
+              : 'text-gray-600 hover:text-clover-600'
+            }`}
         >
           Control de Stock
         </button>
         <button
           onClick={() => setActiveInventoryTab('assignments')}
-          className={`px-4 py-2 font-semibold ${
-            activeInventoryTab === 'assignments'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600'
-          }`}
+          className={`px-4 py-2 font-semibold transition ${activeInventoryTab === 'assignments'
+              ? 'border-b-2 border-clover-600 text-clover-600'
+              : 'text-gray-600 hover:text-clover-600'
+            }`}
         >
           Asignaciones
         </button>
@@ -71,14 +71,18 @@ const Inventory: React.FC<InventoryProps> = ({
           <div className="flex justify-end mb-4">
             <button
               onClick={onShowAddProduct}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex items-center space-x-2 bg-clover-600 text-white px-4 py-2 rounded-lg hover:bg-clover-700 transition shadow-lg"
             >
               <Plus size={20} />
               <span>Agregar Producto</span>
             </button>
           </div>
 
-          <StockTable inventory={inventory} onDeleteProduct={onDeleteProduct} />
+          <StockTable
+            inventory={inventory}
+            onDeleteProduct={onDeleteProduct}
+            onEditProduct={onEditProduct}
+          />
         </div>
       )}
 
@@ -89,7 +93,7 @@ const Inventory: React.FC<InventoryProps> = ({
             <div className="flex-1"></div>
             <button
               onClick={onStartBulkAssignment}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex items-center space-x-2 bg-clover-600 text-black px-4 py-2 rounded-lg hover:bg-clover-700 transition shadow-lg"
             >
               <Plus size={20} />
               <span>Asignar Equipos</span>
@@ -112,4 +116,3 @@ const Inventory: React.FC<InventoryProps> = ({
 };
 
 export default Inventory;
-
