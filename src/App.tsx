@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { InventoryItem, Assignment, NewProduct, BulkAssignment, Employee } from './types';
 import { initialInventory, initialAssignments } from './data/initialData';
 import Sidebar from './components/Sidebar';

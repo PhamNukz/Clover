@@ -251,15 +251,15 @@ export const initialInventory: InventoryItem[] = [
 ];
 
 export const initialAssignments: Assignment[] = [
-  { id: '1', personName: 'Juan Pérez', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-10-20' },
-  { id: '2', personName: 'Juan Pérez', equipment: 'POLERAS NEGRAS', category: 'M', assignmentDate: '2025-10-20' },
-  { id: '3', personName: 'Juan Pérez', equipment: 'ZAPATO SEGURIDAD', category: '42', assignmentDate: '2025-10-20' },
-  { id: '4', personName: 'María González', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-10-22' },
-  { id: '5', personName: 'María González', equipment: 'GUANTES CABRITILLA CORTOS', category: 'Único', assignmentDate: '2025-10-22' },
-  { id: '6', personName: 'Carlos Rodríguez', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-11-05' },
-  { id: '7', personName: 'Carlos Rodríguez', equipment: 'ARNÉS DE SEGURIDAD', category: 'Ajustable', assignmentDate: '2025-11-05' },
-  { id: '8', personName: 'Ana Martínez', equipment: 'POLERAS NEGRAS', category: 'S', assignmentDate: '2025-11-08' },
-  { id: '9', personName: 'Ana Martínez', equipment: 'ANTIPARRAS', category: 'Estándar', assignmentDate: '2025-11-08' },
-  { id: '10', personName: 'Pedro Silva', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-11-10' }
+  { id: '1', personName: 'Juan Pérez', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-10-20', quantity: 1 },
+  { id: '2', personName: 'Juan Pérez', equipment: 'POLERAS NEGRAS', category: 'M', assignmentDate: '2025-10-20', quantity: 1 },
+  { id: '3', personName: 'Juan Pérez', equipment: 'ZAPATO SEGURIDAD', category: '42', assignmentDate: '2025-10-20', quantity: 1 },
+  { id: '4', personName: 'María González', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-10-22', quantity: 1 },
+  { id: '5', personName: 'María González', equipment: 'GUANTES CABRITILLA CORTOS', category: 'Único', assignmentDate: '2025-10-22', quantity: 1 },
+  { id: '6', personName: 'Carlos Rodríguez', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-11-05', quantity: 1 },
+  { id: '7', personName: 'Carlos Rodríguez', equipment: 'ARNÉS DE SEGURIDAD', category: 'Ajustable', assignmentDate: '2025-11-05', quantity: 1 },
+  { id: '8', personName: 'Ana Martínez', equipment: 'POLERAS NEGRAS', category: 'S', assignmentDate: '2025-11-08', quantity: 1 },
+  { id: '9', personName: 'Ana Martínez', equipment: 'ANTIPARRAS', category: 'Estándar', assignmentDate: '2025-11-08', quantity: 1 },
+  { id: '10', personName: 'Pedro Silva', equipment: 'CASCO BLANCO', category: 'Ajustable', assignmentDate: '2025-11-10', quantity: 1 }
 ];
 
