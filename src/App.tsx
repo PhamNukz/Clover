@@ -8,11 +8,13 @@ import Employees from './components/Employees';
 import AddProductModal from './components/AddProductModal';
 import PageTransition from './components/PageTransition';
 import BulkAssignmentModal from './components/BulkAssignmentModal';
+import BulkStockEntryModal, { StockEntry } from './components/BulkStockEntryModal';
 
 const App = () => {
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees'>('dashboard');
   const [activeInventoryTab, setActiveInventoryTab] = useState<'stock' | 'assignments'>('stock');
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [searchEmployee, setSearchEmployee] = useState('');
@@ -286,6 +288,52 @@ const App = () => {
     setBulkDate('');
   };
 
+  const handleBulkStockEntry = (entries: StockEntry[]) => {
+    const updatedInventory = [...inventory];
+
+    entries.forEach(entry => {
+      if (entry.isNewProduct) {
+        // Create new product logic
+        // For now, we'll just open the add product modal pre-filled or handle it simply
+        // Since the requirement says "create one right there", we might need to add it directly if we have enough info
+        // But we only have name and category/size name. We need minStock, price, etc.
+        // So maybe we just add it with defaults or redirect to add product.
+        // Let's add it with defaults for now to satisfy "create one right there"
+        const newProduct: InventoryItem = {
+          id: Date.now().toString() + Math.random(),
+          name: entry.productName,
+          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity }],
+          minStock: 10, // Default
+          lastPurchaseDate: new Date().toISOString().split('T')[0],
+          expirationDate: '',
+          pricePerUnit: 0
+        };
+        updatedInventory.push(newProduct);
+      } else {
+        // Update existing
+        const productIndex = updatedInventory.findIndex(p => p.name === entry.productName);
+        if (productIndex >= 0) {
+          const product = updatedInventory[productIndex];
+          const categoryIndex = product.categories.findIndex(c => c.name === entry.category);
+
+          if (categoryIndex >= 0) {
+            product.categories[categoryIndex].stock += entry.quantity;
+          } else {
+            // Add new category if it doesn't exist (though modal usually selects existing)
+            // If user typed a new category in modal (if we allowed it), we'd add it here
+            product.categories.push({
+              id: Date.now().toString(),
+              name: entry.category,
+              stock: entry.quantity
+            });
+          }
+        }
+      }
+    });
+
+    setInventory(updatedInventory);
+  };
+
   const selectedProduct = bulkEquipment ? inventory.find(item => item.name === bulkEquipment) : null;
   const needsCategorySelection = selectedProduct && selectedProduct.categories.length > 1;
 
@@ -297,7 +345,14 @@ const App = () => {
       <div className="flex-1 overflow-auto bg-clover-50">
         <PageTransition location={activeMenu}>
           {activeMenu === 'dashboard' && (
-            <Dashboard inventory={inventory} assignmentsCount={assignments.length} assignments={assignments} />
+            <Dashboard
+              inventory={inventory}
+              assignmentsCount={assignments.length}
+              assignments={assignments}
+              onRegisterEntry={() => {
+                setShowBulkEntry(true);
+              }}
+            />
           )}
 
           {activeMenu === 'inventory' && (
@@ -375,6 +430,19 @@ const App = () => {
         onUpdateBulkAssignment={updateBulkAssignment}
         onSetBulkDate={setBulkDate}
         onCompleteBulkAssignment={completeBulkAssignment}
+      />
+
+      <BulkStockEntryModal
+        show={showBulkEntry}
+        onClose={() => setShowBulkEntry(false)}
+        inventory={inventory}
+        onSave={handleBulkStockEntry}
+        onCreateProduct={(name) => {
+          // Don't close bulk entry, just open add product
+          // setShowBulkEntry(false); 
+          setNewProduct({ ...newProduct, name });
+          setShowAddProduct(true);
+        }}
       />
     </div>
   );

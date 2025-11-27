@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShoppingCart, Package, Users, AlertTriangle, Calendar, Activity, Plus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Package, Users, AlertTriangle, Calendar, Activity, ArrowRight, Eye, EyeOff, Settings, Plus } from 'lucide-react';
+import HealthProductSelectionModal from './HealthProductSelectionModal';
 import { InventoryItem, Assignment } from '../types';
 import { getTotalStock, getLowStockItems, getExpiringItems, getTotalInvestment } from '../utils/inventory';
 
@@ -7,9 +8,24 @@ interface DashboardProps {
   inventory: InventoryItem[];
   assignmentsCount: number;
   assignments: Assignment[];
+  onRegisterEntry: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assignments }) => {
+const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assignments, onRegisterEntry }) => {
+  const [showTotalInvestment, setShowTotalInvestment] = React.useState(true);
+  const [showHealthModal, setShowHealthModal] = React.useState(false);
+  const [selectedHealthProducts, setSelectedHealthProducts] = React.useState<string[]>(() => {
+    const saved = localStorage.getItem('dashboard_health_products');
+    return saved ? JSON.parse(saved) : inventory.slice(0, 5).map(i => i.id);
+  });
+
+  const handleSaveHealthSelection = (ids: string[]) => {
+    setSelectedHealthProducts(ids);
+    localStorage.setItem('dashboard_health_products', JSON.stringify(ids));
+  };
+
+  const displayedHealthProducts = inventory.filter(item => selectedHealthProducts.includes(item.id));
+
   const lowStockItems = getLowStockItems(inventory);
   const expiringItems = getExpiringItems(inventory);
   const totalInvestment = getTotalInvestment(inventory);
@@ -38,8 +54,18 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
             </div>
             <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">+2.5%</span>
           </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">Inversión Total</h3>
-          <p className="text-3xl font-bold text-gray-900">${totalInvestment.toLocaleString()}</p>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-gray-500 text-sm font-medium">Inversión Total</h3>
+            <button
+              onClick={() => setShowTotalInvestment(!showTotalInvestment)}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {showTotalInvestment ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">
+            {showTotalInvestment ? `$${totalInvestment.toLocaleString()}` : '****'}
+          </p>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -75,9 +101,12 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
               </div>
             </div>
             <div className="flex gap-4">
-              <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-3 rounded-lg transition-colors font-medium">
+              <button
+                onClick={onRegisterEntry}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-3 rounded-lg transition-colors font-medium"
+              >
                 <Plus size={20} />
-                Nuevo Producto
+                Registrar Entrada
               </button>
               <button className="flex items-center gap-2 bg-white text-clover-900 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium shadow-sm">
                 <Activity size={20} />
@@ -121,30 +150,51 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
         <div className="space-y-8">
           {/* Stock Health */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Salud del Inventario</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Stock Destacado</h3>
+              <button
+                onClick={() => setShowHealthModal(true)}
+                className="text-gray-400 hover:text-clover-600 transition-colors"
+                title="Configurar productos"
+              >
+                <Settings size={18} />
+              </button>
+            </div>
             <div className="space-y-4">
-              {inventory.slice(0, 5).map(item => {
-                const totalStock = getTotalStock(item);
-                const percentage = Math.min((totalStock / (item.minStock * 3)) * 100, 100);
-                const colorClass = totalStock < item.minStock ? 'bg-red-500' : totalStock < item.minStock * 1.5 ? 'bg-yellow-500' : 'bg-green-500';
+              {displayedHealthProducts.length > 0 ? (
+                displayedHealthProducts.map(item => {
+                  const totalStock = getTotalStock(item);
+                  const percentage = Math.min((totalStock / (item.minStock || 1)) * 100, 100);
+                  const colorClass = totalStock < item.minStock ? 'bg-red-500' : totalStock < item.minStock * 1.5 ? 'bg-yellow-500' : 'bg-green-500';
 
-                return (
-                  <div key={item.id}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium text-gray-700">{item.name}</span>
-                      <span className="text-gray-500">{totalStock} / {item.minStock} min</span>
+                  return (
+                    <div key={item.id}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-medium text-gray-700">{item.name}</span>
+                        <span className="text-gray-500">{totalStock} / {item.minStock} min</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${colorClass} transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${colorClass} transition-all duration-500`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-gray-500 text-center text-sm py-4">No hay productos seleccionados</p>
+              )}
             </div>
           </div>
+
+          <HealthProductSelectionModal
+            show={showHealthModal}
+            onClose={() => setShowHealthModal(false)}
+            inventory={inventory}
+            selectedProductIds={selectedHealthProducts}
+            onSave={handleSaveHealthSelection}
+          />
 
           {/* Alerts */}
           {(lowStockItems.length > 0 || expiringItems.length > 0) && (
@@ -174,7 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
