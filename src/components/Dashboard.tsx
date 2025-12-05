@@ -12,7 +12,16 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assignments, onRegisterEntry }) => {
-  const [showTotalInvestment, setShowTotalInvestment] = React.useState(true);
+  const [showTotalInvestment, setShowTotalInvestment] = React.useState(() => {
+    const saved = localStorage.getItem('dashboard_show_investment');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  const toggleInvestment = () => {
+    const newValue = !showTotalInvestment;
+    setShowTotalInvestment(newValue);
+    localStorage.setItem('dashboard_show_investment', JSON.stringify(newValue));
+  };
   const [showHealthModal, setShowHealthModal] = React.useState(false);
   const [selectedHealthProducts, setSelectedHealthProducts] = React.useState<string[]>(() => {
     const saved = localStorage.getItem('dashboard_health_products');
@@ -57,7 +66,7 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-gray-500 text-sm font-medium">Inversión Total</h3>
             <button
-              onClick={() => setShowTotalInvestment(!showTotalInvestment)}
+              onClick={toggleInvestment}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               {showTotalInvestment ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -201,15 +210,20 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Alertas</h3>
               <div className="space-y-3">
-                {lowStockItems.slice(0, 3).map(item => (
-                  <div key={item.id} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
-                    <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <p className="text-sm font-medium text-red-900">Stock Bajo: {item.name}</p>
-                      <p className="text-xs text-red-700">Quedan {getTotalStock(item)} unidades</p>
+                {lowStockItems.slice(0, 3).map(item => {
+                  const lowCategories = item.categories.filter(c => c.stock < (c.minStock || 0));
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                      <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="text-sm font-medium text-red-900">Stock Bajo: {item.name}</p>
+                        <p className="text-xs text-red-700">
+                          {lowCategories.map(c => `${c.name} (${c.stock}/${c.minStock})`).join(', ')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {expiringItems.slice(0, 3).map(item => (
                   <div key={item.id} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
                     <Calendar className="text-yellow-600 shrink-0 mt-0.5" size={18} />

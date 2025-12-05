@@ -10,6 +10,7 @@ interface AssignmentsTableProps {
   onDeleteAssignment: (id: string) => void;
   onSelectEmployee: (employee: string) => void;
   onSearchEmployee: (search: string) => void;
+  hideSearch?: boolean;
 }
 
 const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
@@ -19,7 +20,8 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
   allEmployees,
   onDeleteAssignment,
   onSelectEmployee,
-  onSearchEmployee
+  onSearchEmployee,
+  hideSearch = false
 }) => {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Assignment; direction: 'asc' | 'desc' } | null>({ key: 'assignmentDate', direction: 'desc' });
 
@@ -54,39 +56,41 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4 gap-4">
-        <div className="flex gap-4 flex-1">
-          {/* Búsqueda */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              value={searchEmployee}
-              onChange={(e) => {
-                onSearchEmployee(e.target.value);
-                onSelectEmployee('');
-              }}
-              placeholder="Buscar por empleado o equipo..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-            />
-          </div>
+      {!hideSearch && (
+        <div className="flex justify-between items-center mb-4 gap-4">
+          <div className="flex gap-4 flex-1">
+            {/* Búsqueda */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={searchEmployee}
+                onChange={(e) => {
+                  onSearchEmployee(e.target.value);
+                  onSelectEmployee('');
+                }}
+                placeholder="Buscar por empleado o equipo..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+              />
+            </div>
 
-          {/* Filtro por empleado */}
-          <select
-            value={selectedEmployee}
-            onChange={(e) => {
-              onSelectEmployee(e.target.value);
-              onSearchEmployee('');
-            }}
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500"
-          >
-            <option value="">Todos los empleados</option>
-            {allEmployees.map(emp => (
-              <option key={emp} value={emp}>{emp}</option>
-            ))}
-          </select>
+            {/* Filtro por empleado */}
+            <select
+              value={selectedEmployee}
+              onChange={(e) => {
+                onSelectEmployee(e.target.value);
+                onSearchEmployee('');
+              }}
+              className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500"
+            >
+              <option value="">Todos los empleados</option>
+              {allEmployees.map(emp => (
+                <option key={emp} value={emp}>{emp}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Resumen por empleado seleccionado */}
       {selectedEmployee && (

@@ -5,7 +5,10 @@ export const getTotalStock = (item: InventoryItem): number => {
 };
 
 export const getLowStockItems = (inventory: InventoryItem[]): InventoryItem[] => {
-  return inventory.filter(item => getTotalStock(item) < item.minStock);
+  return inventory.filter(item => {
+    // Check if ANY category (size) is below its minimum stock
+    return item.categories.some(cat => cat.stock < (cat.minStock || 0));
+  });
 };
 
 export const getExpiringItems = (inventory: InventoryItem[]): InventoryItem[] => {
@@ -50,5 +53,20 @@ export const getDaysUntilExpiration = (expirationDate: string): number => {
   const expDate = new Date(expirationDate);
   const diffTime = expDate.getTime() - new Date().getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+export const getExpirationRange = (expirationDate: string): string => {
+  if (!expirationDate) return 'N/A';
+  const days = getDaysUntilExpiration(expirationDate);
+
+  if (days < 0) return 'Vencido';
+  if (days <= 7) return 'Menos de 1 semana';
+  if (days <= 14) return '2 semanas';
+  if (days <= 30) return '1 mes';
+  if (days <= 60) return '2 meses';
+  if (days <= 90) return '3 meses';
+  if (days <= 180) return '6 meses';
+  if (days <= 365) return '1 año';
+  return 'Más de 1 año';
 };
 

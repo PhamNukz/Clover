@@ -12,7 +12,6 @@ import BulkStockEntryModal, { StockEntry } from './components/BulkStockEntryModa
 
 const App = () => {
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees'>('dashboard');
-  const [activeInventoryTab, setActiveInventoryTab] = useState<'stock' | 'assignments'>('stock');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
@@ -43,7 +42,7 @@ const App = () => {
 
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
-    categories: [{ name: '', stock: 0 }],
+    categories: [{ name: '', stock: 0, minStock: 0 }],
     minStock: 0,
     lastPurchaseDate: '',
     expirationDate: '',
@@ -67,7 +66,8 @@ const App = () => {
             categories: newProduct.categories.map((cat, idx) => ({
               id: item.categories[idx]?.id || `${Date.now()}-${idx}`,
               name: cat.name,
-              stock: cat.stock
+              stock: cat.stock,
+              minStock: cat.minStock || 0
             })),
             minStock: newProduct.minStock,
             lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -85,7 +85,8 @@ const App = () => {
         categories: newProduct.categories.map((cat, idx) => ({
           id: `${Date.now()}-${idx}`,
           name: cat.name,
-          stock: cat.stock
+          stock: cat.stock,
+          minStock: cat.minStock || 0
         })),
         minStock: newProduct.minStock,
         lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -97,7 +98,7 @@ const App = () => {
 
     setNewProduct({
       name: '',
-      categories: [{ name: '', stock: 0 }],
+      categories: [{ name: '', stock: 0, minStock: 0 }],
       minStock: 0,
       lastPurchaseDate: '',
       expirationDate: '',
@@ -109,7 +110,7 @@ const App = () => {
   const handleEditProduct = (product: InventoryItem) => {
     setNewProduct({
       name: product.name,
-      categories: product.categories.map(c => ({ name: c.name, stock: c.stock })),
+      categories: product.categories.map(c => ({ name: c.name, stock: c.stock, minStock: c.minStock || 0 })),
       minStock: product.minStock,
       lastPurchaseDate: product.lastPurchaseDate,
       expirationDate: product.expirationDate,
@@ -154,11 +155,11 @@ const App = () => {
   const addCategory = () => {
     setNewProduct({
       ...newProduct,
-      categories: [...newProduct.categories, { name: '', stock: 0 }]
+      categories: [...newProduct.categories, { name: '', stock: 0, minStock: 0 }]
     });
   };
 
-  const updateCategory = (index: number, field: 'name' | 'stock', value: string | number) => {
+  const updateCategory = (index: number, field: 'name' | 'stock' | 'minStock', value: string | number) => {
     const updatedCategories = [...newProduct.categories];
     updatedCategories[index] = { ...updatedCategories[index], [field]: value };
     setNewProduct({ ...newProduct, categories: updatedCategories });
@@ -288,11 +289,31 @@ const App = () => {
     setBulkDate('');
   };
 
-  const handleBulkStockEntry = (entries: StockEntry[]) => {
+  const handleBulkStockEntry = (entries: StockEntry[], type: 'entry' | 'exit') => {
     const updatedInventory = [...inventory];
+    const newAssignments: Assignment[] = [];
+    const dateStr = new Date().toLocaleDateString('es-ES');
+
+    // Validation for exits first
+    if (type === 'exit') {
+      let possible = true;
+      entries.forEach(entry => {
+        const product = updatedInventory.find(p => p.name === entry.productName);
+        const cat = product?.categories.find(c => c.name === entry.category);
+        if (!product || !cat || cat.stock < entry.quantity) {
+          possible = false;
+          // Ideally we show specific error but alert is fine for now
+        }
+      });
+
+      if (!possible) {
+        alert("Error: No hay suficiente stock para realizar algunas de las salidas solicitadas.");
+        return;
+      }
+    }
 
     entries.forEach(entry => {
-      if (entry.isNewProduct) {
+      if (entry.isNewProduct && type === 'entry') {
         // Create new product logic
         // For now, we'll just open the add product modal pre-filled or handle it simply
         // Since the requirement says "create one right there", we might need to add it directly if we have enough info
@@ -302,7 +323,7 @@ const App = () => {
         const newProduct: InventoryItem = {
           id: Date.now().toString() + Math.random(),
           name: entry.productName,
-          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity }],
+          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10 }],
           minStock: 10, // Default
           lastPurchaseDate: new Date().toISOString().split('T')[0],
           expirationDate: '',
@@ -317,21 +338,41 @@ const App = () => {
           const categoryIndex = product.categories.findIndex(c => c.name === entry.category);
 
           if (categoryIndex >= 0) {
-            product.categories[categoryIndex].stock += entry.quantity;
+            if (type === 'entry') {
+              product.categories[categoryIndex].stock += entry.quantity;
+            } else {
+              product.categories[categoryIndex].stock = Math.max(0, product.categories[categoryIndex].stock - entry.quantity);
+
+              // Log waste assignment
+              newAssignments.push({
+                id: `${Date.now()}-${Math.random()}`,
+                personName: 'MERMA / SALIDA',
+                equipment: entry.productName,
+                category: entry.category,
+                assignmentDate: dateStr,
+                quantity: entry.quantity
+              });
+            }
           } else {
             // Add new category if it doesn't exist (though modal usually selects existing)
             // If user typed a new category in modal (if we allowed it), we'd add it here
-            product.categories.push({
-              id: Date.now().toString(),
-              name: entry.category,
-              stock: entry.quantity
-            });
+            if (type === 'entry') {
+              product.categories.push({
+                id: Date.now().toString(),
+                name: entry.category,
+                stock: entry.quantity,
+                minStock: 10
+              });
+            }
           }
         }
       }
     });
 
     setInventory(updatedInventory);
+    if (newAssignments.length > 0) {
+      setAssignments([...assignments, ...newAssignments]);
+    }
   };
 
   const selectedProduct = bulkEquipment ? inventory.find(item => item.name === bulkEquipment) : null;
@@ -357,20 +398,13 @@ const App = () => {
 
           {activeMenu === 'inventory' && (
             <Inventory
-              activeInventoryTab={activeInventoryTab}
-              setActiveInventoryTab={setActiveInventoryTab}
               inventory={inventory}
               assignments={assignments}
-              selectedEmployee={selectedEmployee}
-              searchEmployee={searchEmployee}
-              allEmployees={allEmployees}
               onDeleteProduct={deleteProduct}
               onEditProduct={handleEditProduct}
-              onDeleteAssignment={deleteAssignment}
-              onSelectEmployee={setSelectedEmployee}
-              onSearchEmployee={setSearchEmployee}
               onShowAddProduct={() => setShowAddProduct(true)}
               onStartBulkAssignment={startBulkAssignment}
+              onRegisterEntry={() => setShowBulkEntry(true)}
             />
           )}
 
@@ -381,6 +415,7 @@ const App = () => {
               onAddEmployee={handleAddEmployee}
               onEditEmployee={handleEditEmployee}
               onDeleteEmployee={handleDeleteEmployee}
+              onDeleteAssignment={deleteAssignment}
             />
           )}
         </PageTransition>
@@ -396,7 +431,7 @@ const App = () => {
           setEditingProductId(null);
           setNewProduct({
             name: '',
-            categories: [{ name: '', stock: 0 }],
+            categories: [{ name: '', stock: 0, minStock: 0 }],
             minStock: 0,
             lastPurchaseDate: '',
             expirationDate: '',

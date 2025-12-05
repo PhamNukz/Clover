@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Trash2, Edit2, ArrowUpDown } from 'lucide-react';
 import { InventoryItem } from '../types';
-import { getTotalStock, getExpirationStatus, getRowBgColor } from '../utils/inventory';
+import { getTotalStock, getExpirationStatus, getRowBgColor, getExpirationRange } from '../utils/inventory';
 
 interface StockTableProps {
   inventory: InventoryItem[];
   onDeleteProduct: (id: string) => void;
-  onEditProduct: (product: InventoryItem) => void;
+  onEditProduct: (product: InventoryItem, e: React.MouseEvent) => void;
+  onProductClick: (product: InventoryItem) => void;
 }
 
-const StockTable: React.FC<StockTableProps> = ({ inventory, onDeleteProduct, onEditProduct }) => {
+const StockTable: React.FC<StockTableProps> = ({ inventory, onDeleteProduct, onEditProduct, onProductClick }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const sortedInventory = [...inventory].sort((a, b) => {
@@ -34,16 +35,17 @@ const StockTable: React.FC<StockTableProps> = ({ inventory, onDeleteProduct, onE
             </th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Tallas</th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Stock Total</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Stock Mínimo</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Última Compra</th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Vencimiento</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Precio Unit.</th>
             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {sortedInventory.map(item => (
-            <tr key={item.id} className={`${getRowBgColor(item.expirationDate)} hover:bg-clover-50 transition-colors`}>
+            <tr
+              key={item.id}
+              className={`${getRowBgColor(item.expirationDate)} hover:bg-clover-50 transition-colors cursor-pointer`}
+              onClick={() => onProductClick(item)}
+            >
               <td className="px-4 py-3 border border-gray-200 font-medium text-gray-900">{item.name}</td>
               <td className="px-4 py-3 border border-gray-200">
                 <div className="flex flex-wrap gap-1">
@@ -55,22 +57,34 @@ const StockTable: React.FC<StockTableProps> = ({ inventory, onDeleteProduct, onE
                 </div>
               </td>
               <td className="px-4 py-3 border border-gray-200 text-center font-bold text-gray-900">{getTotalStock(item)}</td>
-              <td className="px-4 py-3 border border-gray-200 text-center text-gray-700">{item.minStock}</td>
-              <td className="px-4 py-3 border border-gray-200 text-gray-700">{item.lastPurchaseDate}</td>
               <td className={`px-4 py-3 border border-gray-200 ${getExpirationStatus(item.expirationDate)}`}>
-                {item.expirationDate}
+                {getExpirationRange(item.expirationDate)}
               </td>
-              <td className="px-4 py-3 border border-gray-200 text-gray-700">${item.pricePerUnit.toLocaleString()}</td>
               <td className="px-4 py-3 border border-gray-200">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onEditProduct(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onProductClick(item);
+                    }}
+                    className="text-clover-600 hover:text-clover-800 transition-colors text-sm font-medium mr-2"
+                  >
+                    Ver Detalle
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditProduct(item, e);
+                    }}
                     className="text-blue-600 hover:text-blue-800 transition-colors"
                   >
                     <Edit2 size={18} />
                   </button>
                   <button
-                    onClick={() => onDeleteProduct(item.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteProduct(item.id);
+                    }}
                     className="text-red-600 hover:text-red-800 transition-colors"
                   >
                     <Trash2 size={18} />

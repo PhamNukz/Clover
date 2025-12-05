@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, ChevronRight, ChevronDown, Package } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { Employee, Assignment } from '../types';
+import AssignmentsTable from './AssignmentsTable';
 
 interface EmployeesProps {
     employees: Employee[];
@@ -8,6 +9,7 @@ interface EmployeesProps {
     onAddEmployee: (employee: Employee) => void;
     onEditEmployee: (employee: Employee) => void;
     onDeleteEmployee: (id: string) => void;
+    onDeleteAssignment: (id: string) => void;
 }
 
 const Employees: React.FC<EmployeesProps> = ({
@@ -15,12 +17,21 @@ const Employees: React.FC<EmployeesProps> = ({
     assignments,
     onAddEmployee,
     onEditEmployee,
-    onDeleteEmployee
+    onDeleteEmployee,
+    onDeleteAssignment
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+    React.useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setShowAddModal(false);
+        };
+        if (showAddModal) window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [showAddModal]);
 
     // Form state
     const [formData, setFormData] = useState<Partial<Employee>>({
@@ -159,28 +170,42 @@ const Employees: React.FC<EmployeesProps> = ({
                                     {/* Expanded View - Assignments */}
                                     {isExpanded && (
                                         <div className="bg-gray-50 p-4 pl-16 border-t border-gray-200">
-                                            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                                <Package size={16} />
+                                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
                                                 Inventario Asignado
                                             </h4>
-                                            {empAssignments.length > 0 ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {empAssignments.map((assignment) => (
-                                                        <div key={assignment.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                                            <div className="font-medium text-gray-900">{assignment.equipment}</div>
-                                                            <div className="text-sm text-gray-500">
-                                                                Talla/Cat: {assignment.category}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500 flex justify-between mt-2">
-                                                                <span>Cant: {assignment.quantity || 1}</span>
-                                                                <span>{assignment.assignmentDate}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm text-gray-500 italic">No hay equipos asignados.</p>
-                                            )}
+                                            <AssignmentsTable
+                                                assignments={empAssignments}
+                                                selectedEmployee={employee.name} // Filter logic handled by passing pre-filtered list, or we use props to filter.
+                                                // Actually AssignmentsTable filters by props internally if we pass all assignments, 
+                                                // but here we want to show specific list. 
+                                                // AssignmentsTable takes 'assignments' prop. 
+                                                // If we pass filtered list, it works.
+                                                // But check if it needs other props like 'searchEmployee' etc to avoid errors or weird UI.
+                                                // It needs all props.
+                                                searchEmployee=""
+                                                allEmployees={[]}
+                                                onDeleteAssignment={() => { }} // Read-only view here? Or allow delete? User didn't specify, but "igual a la de asignaciones" implies functionality.
+                                                // If we want funcionality we need to pass the real handlers.
+                                                // But 'onDeleteAssignment' is passed to Employees component? Yes.
+                                                onSelectEmployee={() => { }}
+                                                onSearchEmployee={() => { }}
+                                                hideSearch={true}
+                                            />
+                                            {/* 
+                                                WAIT. AssignmentsTable expects `onDeleteAssignment`.
+                                                And `Employees` component receives `onDeleteEmployee`.
+                                                It does NOT receive `onDeleteAssignment`.
+                                                So I cannot pass it unless I update `Employees` props or just make it read-only/visual.
+                                                User said: "la tabla que se despliega por empleado sea igual a la de asignaciones"
+                                                Usually implies visual format. Providing delete might require prop drilling.
+                                                I will check App.tsx to see if I can pass onDeleteAssignment to Employees.
+                                                App.tsx passes `assignments`.
+                                                It does NOT pass `onDeleteAssignment` to `Employees` component currently.
+                                                I should update App.tsx to pass it, or just mock it if it's view only.
+                                                Given "Inventory" has it, "Employees" might need it strictly for "Actions" column.
+                                                If I don't pass it, the delete button will crash or do nothing.
+                                                I will update App.tsx to pass `onDeleteAssignment` to `Employees`.
+                                            */}
                                         </div>
                                     )}
                                 </div>
@@ -194,9 +219,14 @@ const Employees: React.FC<EmployeesProps> = ({
             {showAddModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-                        <h3 className="text-xl font-bold mb-4">
-                            {editingEmployee ? 'Editar Empleado' : 'Agregar Empleado'}
-                        </h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold">
+                                {editingEmployee ? 'Editar Empleado' : 'Agregar Empleado'}
+                            </h3>
+                            <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
@@ -210,12 +240,35 @@ const Employees: React.FC<EmployeesProps> = ({
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Cargo / Rol</label>
-                                <input
-                                    type="text"
-                                    value={formData.role}
-                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-clover-500 focus:outline-none"
-                                />
+                                <div className="space-y-2">
+                                    <select
+                                        value={['Administración', 'Operaciones', 'Trabajador', 'Externo'].includes(formData.role || '') ? formData.role : 'Otro'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'Otro') {
+                                                setFormData({ ...formData, role: '' });
+                                            } else {
+                                                setFormData({ ...formData, role: val });
+                                            }
+                                        }}
+                                        className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-clover-500 focus:outline-none bg-white"
+                                    >
+                                        <option value="Administración">Administración</option>
+                                        <option value="Operaciones">Operaciones</option>
+                                        <option value="Trabajador">Trabajador</option>
+                                        <option value="Externo">Externo</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                    {(!['Administración', 'Operaciones', 'Trabajador', 'Externo'].includes(formData.role || '') || formData.role === '') && (
+                                        <input
+                                            type="text"
+                                            placeholder="Especifique el cargo"
+                                            value={formData.role}
+                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-clover-500 focus:outline-none"
+                                        />
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>

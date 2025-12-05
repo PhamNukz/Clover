@@ -10,7 +10,7 @@ interface AddProductModalProps {
   onAddProduct: () => void;
   onUpdateProduct: (product: NewProduct) => void;
   onAddCategory: () => void;
-  onUpdateCategory: (index: number, field: 'name' | 'stock', value: string | number) => void;
+  onUpdateCategory: (index: number, field: 'name' | 'stock' | 'minStock', value: string | number) => void;
   onRemoveCategory: (index: number) => void;
 }
 
@@ -25,6 +25,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   onUpdateCategory,
   onRemoveCategory
 }) => {
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (show) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [show, onClose]);
+
   if (!show) return null;
 
   return (
@@ -60,25 +68,38 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               </button>
             </div>
             {newProduct.categories.map((cat, index) => (
-              <div key={index} className="flex gap-2 mb-2">
+              <div key={index} className="flex gap-2 mb-2 items-center">
                 <input
                   type="text"
                   value={cat.name}
                   onChange={(e) => onUpdateCategory(index, 'name', e.target.value)}
-                  className="flex-1 border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-                  placeholder="Nombre (ej: S, M, L, 42, 44)"
+                  className="flex-[2] border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                  placeholder="Nombre (ej: S, M)"
                 />
-                <input
-                  type="number"
-                  value={cat.stock}
-                  onChange={(e) => onUpdateCategory(index, 'stock', parseInt(e.target.value) || 0)}
-                  className="w-24 border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-                  placeholder="Stock"
-                />
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={cat.stock}
+                    onChange={(e) => onUpdateCategory(index, 'stock', parseInt(e.target.value) || 0)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                    placeholder="Stock"
+                  />
+                  <span className="text-xs text-gray-500 ml-1">Stock</span>
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={cat.minStock}
+                    onChange={(e) => onUpdateCategory(index, 'minStock', parseInt(e.target.value) || 0)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                    placeholder="Min"
+                  />
+                  <span className="text-xs text-gray-500 ml-1">Min</span>
+                </div>
                 {newProduct.categories.length > 1 && (
                   <button
                     onClick={() => onRemoveCategory(index)}
-                    className="text-red-600 hover:text-red-800 transition-colors"
+                    className="text-red-600 hover:text-red-800 transition-colors p-2"
                   >
                     <Trash2 size={20} />
                   </button>

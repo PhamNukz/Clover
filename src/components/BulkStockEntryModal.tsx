@@ -6,7 +6,7 @@ interface BulkStockEntryModalProps {
     show: boolean;
     onClose: () => void;
     inventory: InventoryItem[];
-    onSave: (entries: StockEntry[]) => void;
+    onSave: (entries: StockEntry[], type: 'entry' | 'exit') => void;
     onCreateProduct: (name: string) => void;
 }
 
@@ -41,6 +41,20 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
     onCreateProduct
 }) => {
     const [entries, setEntries] = useState<ProductEntry[]>([]);
+    const [mode, setMode] = useState<'entry' | 'exit'>('entry');
+    const isEntry = mode === 'entry';
+    const themeColor = isEntry ? 'clover' : 'red';
+    const ThemeButton = ({ children, onClick, className = '' }: any) => (
+        <button
+            onClick={onClick}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${isEntry
+                ? 'bg-clover-600 hover:bg-clover-700 text-white'
+                : 'bg-red-600 hover:bg-red-700 text-white'
+                } ${className}`}
+        >
+            {children}
+        </button>
+    );
 
     // Load draft from localStorage on mount
     useEffect(() => {
@@ -59,6 +73,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
 
         // Default initial state
         if (show && entries.length === 0) {
+            setMode('entry'); // Reset mode on open
             setEntries([{
                 id: Date.now().toString(),
                 productName: '',
@@ -182,7 +197,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
             return;
         }
 
-        onSave(flatEntries);
+        onSave(flatEntries, mode);
         clearDraft(); // Clear draft after successful save
         onClose();
     };
@@ -192,9 +207,32 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
             <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Registrar Entrada de Stock</h2>
-                        <p className="text-sm text-gray-500">Ingresa productos al inventario masivamente</p>
+                        <h2 className="text-xl font-bold text-gray-900">Control de Stock</h2>
+                        <p className="text-sm text-gray-500">Registra entradas o salidas de inventario</p>
                     </div>
+
+                    {/* Tabs */}
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setMode('entry')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${mode === 'entry'
+                                ? 'bg-white text-clover-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Entrada
+                        </button>
+                        <button
+                            onClick={() => setMode('exit')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${mode === 'exit'
+                                ? 'bg-white text-red-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Salida / Merma
+                        </button>
+                    </div>
+
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <X size={24} />
                     </button>
@@ -209,7 +247,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                             return (
                                 <div key={entry.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-clover-100 text-clover-700 font-bold shrink-0">
+                                        <div className={`flex items-center justify-center w-8 h-8 rounded-full ${isEntry ? 'bg-clover-100 text-clover-700' : 'bg-red-100 text-red-700'} font-bold shrink-0`}>
                                             {index + 1}
                                         </div>
 
@@ -254,7 +292,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                                                             <select
                                                                 value={variant.category}
                                                                 onChange={(e) => handleVariantChange(entry.id, variant.id, 'category', e.target.value)}
-                                                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-clover-500 focus:ring-2 focus:ring-clover-200 outline-none bg-white"
+                                                                className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-${isEntry ? 'clover' : 'red'}-500 focus:ring-2 focus:ring-${isEntry ? 'clover' : 'red'}-200 outline-none bg-white`}
                                                                 disabled={!product}
                                                             >
                                                                 <option value="">Seleccionar...</option>
@@ -291,7 +329,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
 
                                         <button
                                             onClick={() => addVariant(entry.id)}
-                                            className="text-sm text-clover-600 font-medium hover:text-clover-700 flex items-center gap-1 mt-2"
+                                            className={`text-sm ${isEntry ? 'text-clover-600 hover:text-clover-700' : 'text-red-600 hover:text-red-700'} font-medium flex items-center gap-1 mt-2`}
                                         >
                                             <Plus size={16} /> Agregar otra talla/variante
                                         </button>
@@ -304,7 +342,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                     <div className="flex gap-4 mt-6">
                         <button
                             onClick={addEntry}
-                            className="flex items-center gap-2 text-clover-600 font-medium hover:text-clover-700 transition-colors"
+                            className={`flex items-center gap-2 ${isEntry ? 'text-clover-600 hover:text-clover-700' : 'text-red-600 hover:text-red-700'} font-medium transition-colors`}
                         >
                             <Plus size={20} />
                             Agregar otro producto
@@ -334,16 +372,13 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                     <div className="flex gap-3">
                         <button
                             onClick={saveDraft}
-                            className="px-4 py-2 border-2 border-clover-600 text-clover-600 font-medium rounded-lg hover:bg-clover-50 transition-colors"
+                            className={`px-4 py-2 border-2 ${isEntry ? 'border-clover-600 text-clover-600 hover:bg-clover-50' : 'border-red-600 text-red-600 hover:bg-red-50'} font-medium rounded-lg transition-colors`}
                         >
                             Guardar Borrador
                         </button>
-                        <button
-                            onClick={handleSubmit}
-                            className="px-6 py-2 bg-clover-600 text-white font-medium rounded-lg hover:bg-clover-700 transition-colors shadow-sm shadow-clover-200"
-                        >
-                            Registrar Entrada
-                        </button>
+                        <ThemeButton onClick={handleSubmit}>
+                            {isEntry ? 'Registrar Entrada' : 'Registrar Salida'}
+                        </ThemeButton>
                     </div>
                 </div>
             </div>

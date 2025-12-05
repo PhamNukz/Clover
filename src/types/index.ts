@@ -2,13 +2,14 @@ export interface Category {
   id: string;
   name: string;
   stock: number;
+  minStock: number;
 }
 
 export interface InventoryItem {
   id: string;
   name: string;
   categories: Category[];
-  minStock: number;
+  minStock: number; // Kept for backward compatibility or global default, though specific size takes precedence
   lastPurchaseDate: string;
   expirationDate: string;
   pricePerUnit: number;
@@ -39,7 +40,7 @@ export interface BulkAssignment {
 
 export interface NewProduct {
   name: string;
-  categories: { name: string; stock: number }[];
+  categories: { name: string; stock: number; minStock: number }[];
   minStock: number;
   lastPurchaseDate: string;
   expirationDate: string;
