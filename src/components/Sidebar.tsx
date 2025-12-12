@@ -1,10 +1,9 @@
-import React from 'react';
-import { Package, TrendingUp, Users } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Tag, TrendingUp } from 'lucide-react';
 import logo from '../assets/cropped-logo-clover-integral-.svg';
 
 interface SidebarProps {
-  activeMenu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder';
-  setActiveMenu: (menu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder') => void;
+  activeMenu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder' | 'categories';
+  setActiveMenu: (menu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder' | 'categories') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) => {
@@ -55,6 +54,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) => {
         >
           <Package size={20} className="text-gray-900" />
           <span>Ordenes compra</span>
+        </button>
+        <button
+          onClick={() => setActiveMenu('categories')}
+          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${activeMenu === 'categories'
+            ? 'bg-clover-600 text-white shadow-lg shadow-clover-200'
+            : 'text-gray-600 hover:bg-clover-50 hover:text-clover-700'
+            }`}
+        >
+          <Tag size={20} className={`transition-transform duration-200 ${activeMenu === 'categories' ? 'scale-110' : 'group-hover:scale-110'}`} />
+          <span className="font-medium">Categorías</span>
         </button>
       </nav>
     </div>

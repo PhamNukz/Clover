@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { InventoryItem, Assignment, NewProduct, BulkAssignment, Employee } from './types';
+import { useState, useEffect } from 'react';
+import { InventoryItem, Assignment, NewProduct, BulkAssignment, Employee, PurchaseOrder } from './types';
 import { initialInventory, initialAssignments } from './data/initialData';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -10,10 +10,10 @@ import PageTransition from './components/PageTransition';
 import BulkAssignmentModal from './components/BulkAssignmentModal';
 import BulkStockEntryModal, { StockEntry } from './components/BulkStockEntryModal';
 import PurchaseOrders from './components/PurchaseOrders';
-import { PurchaseOrder } from './types';
+import CategoriesManagement from './components/CategoriesManagement';
 
 const App = () => {
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees' | 'purchaseOrder'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees' | 'purchaseOrder' | 'categories'>('dashboard');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
@@ -21,17 +21,26 @@ const App = () => {
   const [searchEmployee, setSearchEmployee] = useState('');
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
-  // Estado para asignación masiva
-  const [bulkAssignmentStep, setBulkAssignmentStep] = useState<'select-people' | 'assign-categories' | null>(null);
-  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
-  const [bulkEquipment, setBulkEquipment] = useState('');
-  const [bulkAssignments, setBulkAssignments] = useState<BulkAssignment[]>([]);
-  const [bulkDate, setBulkDate] = useState('');
+  // States
+  const [productCategories, setProductCategories] = useState<string[]>([
+    'EPP',
+    'Insumos',
+    'Material Trabajo',
+    'Productos de Limpieza',
+    'Generales'
+  ]);
 
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  // Migrate initial inventory if needed or ensure typed correctly
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    return initialInventory.map(item => ({
+      ...item,
+      category: item.category || 'Generales' // Default category if missing
+    }));
+  });
+
   const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
 
-  // Initialize employees from existing assignments to prevent data loss
+  // Initialize employees
   const [employees, setEmployees] = useState<Employee[]>(() => {
     const uniqueNames = Array.from(new Set(initialAssignments.map(a => a.personName)));
     return uniqueNames.map((name, index) => ({
@@ -42,7 +51,7 @@ const App = () => {
     }));
   });
 
-  // Purchase Orders State with Mock Data
+  // Purchase Orders State
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
     {
       id: 41,
@@ -89,16 +98,49 @@ const App = () => {
 
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
-    categories: [{ name: '', stock: 0, minStock: 0 }],
+    category: 'Generales',
+    categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
     minStock: 0,
     lastPurchaseDate: '',
     expirationDate: '',
     pricePerUnit: 0
   });
 
+  // Estado para asignación masiva
+  const [bulkAssignmentStep, setBulkAssignmentStep] = useState<'select-people' | 'assign-categories' | null>(null);
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
+  const [bulkEquipment, setBulkEquipment] = useState('');
+  const [bulkAssignments, setBulkAssignments] = useState<BulkAssignment[]>([]);
+  const [bulkDate, setBulkDate] = useState('');
+
   // Obtener lista única de empleados
   // Obtener lista única de empleados
   const allEmployees = employees.map(e => e.name).sort();
+
+  // Categories Management Handlers
+  const handleAddCategory = (category: string) => {
+    if (!productCategories.includes(category)) {
+      setProductCategories([...productCategories, category]);
+    }
+  };
+
+  const handleUpdateCategory = (oldCategory: string, newCategory: string) => {
+    if (productCategories.includes(newCategory)) {
+      alert('Esa categoría ya existe');
+      return;
+    }
+    setProductCategories(productCategories.map(c => c === oldCategory ? newCategory : c));
+    // Update products using this category
+    setInventory(inventory.map(item => item.category === oldCategory ? { ...item, category: newCategory } : item));
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    if (confirm(`¿Eliminar categoría "${category}"? Los productos asignados pasarán a "Generales".`)) {
+      setProductCategories(productCategories.filter(c => c !== category));
+      setInventory(inventory.map(item => item.category === category ? { ...item, category: 'Generales' } : item));
+    }
+  };
+
 
   const handleAddProduct = () => {
     if (!newProduct.name || newProduct.categories.length === 0) return;
@@ -110,11 +152,13 @@ const App = () => {
           ? {
             ...item,
             name: newProduct.name,
+            category: newProduct.category,
             categories: newProduct.categories.map((cat, idx) => ({
               id: item.categories[idx]?.id || `${Date.now()}-${idx}`,
               name: cat.name,
               stock: cat.stock,
-              minStock: cat.minStock || 0
+              minStock: cat.minStock || 0,
+              barcode: cat.barcode
             })),
             minStock: newProduct.minStock,
             lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -129,11 +173,13 @@ const App = () => {
       const product: InventoryItem = {
         id: Date.now().toString(),
         name: newProduct.name,
+        category: newProduct.category || 'Generales',
         categories: newProduct.categories.map((cat, idx) => ({
           id: `${Date.now()}-${idx}`,
           name: cat.name,
           stock: cat.stock,
-          minStock: cat.minStock || 0
+          minStock: cat.minStock || 0,
+          barcode: cat.barcode
         })),
         minStock: newProduct.minStock,
         lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -145,7 +191,8 @@ const App = () => {
 
     setNewProduct({
       name: '',
-      categories: [{ name: '', stock: 0, minStock: 0 }],
+      category: 'Generales',
+      categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
       minStock: 0,
       lastPurchaseDate: '',
       expirationDate: '',
@@ -157,7 +204,13 @@ const App = () => {
   const handleEditProduct = (product: InventoryItem) => {
     setNewProduct({
       name: product.name,
-      categories: product.categories.map(c => ({ name: c.name, stock: c.stock, minStock: c.minStock || 0 })),
+      category: product.category || 'Generales',
+      categories: product.categories.map(c => ({
+        name: c.name,
+        stock: c.stock,
+        minStock: c.minStock || 0,
+        barcode: c.barcode || ''
+      })),
       minStock: product.minStock,
       lastPurchaseDate: product.lastPurchaseDate,
       expirationDate: product.expirationDate,
@@ -202,11 +255,11 @@ const App = () => {
   const addCategory = () => {
     setNewProduct({
       ...newProduct,
-      categories: [...newProduct.categories, { name: '', stock: 0, minStock: 0 }]
+      categories: [...newProduct.categories, { name: '', stock: 0, minStock: 0, barcode: '' }]
     });
   };
 
-  const updateCategory = (index: number, field: 'name' | 'stock' | 'minStock', value: string | number) => {
+  const updateCategory = (index: number, field: 'name' | 'stock' | 'minStock' | 'barcode', value: string | number) => {
     const updatedCategories = [...newProduct.categories];
     updatedCategories[index] = { ...updatedCategories[index], [field]: value };
     setNewProduct({ ...newProduct, categories: updatedCategories });
@@ -317,14 +370,7 @@ const App = () => {
 
     setInventory(updatedInventory);
     setAssignments([...assignments, ...newAssignments]);
-
-    // Reset
-    setShowAddAssignment(false);
-    setBulkAssignmentStep(null);
-    setSelectedPeople([]);
-    setBulkEquipment('');
-    setBulkAssignments([]);
-    setBulkDate('');
+    closeBulkAssignment();
   };
 
   const closeBulkAssignment = () => {
@@ -370,7 +416,8 @@ const App = () => {
         const newProduct: InventoryItem = {
           id: Date.now().toString() + Math.random(),
           name: entry.productName,
-          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10 }],
+          category: 'Generales',
+          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10, barcode: '' }],
           minStock: 10, // Default
           lastPurchaseDate: new Date().toISOString().split('T')[0],
           expirationDate: '',
@@ -463,6 +510,7 @@ const App = () => {
             <Inventory
               inventory={inventory}
               assignments={assignments}
+              productCategories={productCategories}
               onDeleteProduct={deleteProduct}
               onEditProduct={handleEditProduct}
               onShowAddProduct={() => setShowAddProduct(true)}
@@ -490,6 +538,15 @@ const App = () => {
               onDeleteOrder={handleDeleteOrder}
             />
           )}
+
+          {activeMenu === 'categories' && (
+            <CategoriesManagement
+              categories={productCategories}
+              onAddCategory={handleAddCategory}
+              onUpdateCategory={handleUpdateCategory}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          )}
         </PageTransition>
       </div>
 
@@ -498,12 +555,14 @@ const App = () => {
         show={showAddProduct}
         isEditing={!!editingProductId}
         newProduct={newProduct}
+        productCategories={productCategories}
         onClose={() => {
           setShowAddProduct(false);
           setEditingProductId(null);
           setNewProduct({
             name: '',
-            categories: [{ name: '', stock: 0, minStock: 0 }],
+            category: 'Generales',
+            categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
             minStock: 0,
             lastPurchaseDate: '',
             expirationDate: '',
@@ -547,7 +606,7 @@ const App = () => {
         onCreateProduct={(name) => {
           // Don't close bulk entry, just open add product
           // setShowBulkEntry(false); 
-          setNewProduct({ ...newProduct, name });
+          setNewProduct({ ...newProduct, name, category: 'Generales', categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }] });
           setShowAddProduct(true);
         }}
       />

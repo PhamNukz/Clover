@@ -3,13 +3,15 @@ export interface Category {
   name: string;
   stock: number;
   minStock: number;
+  barcode?: string;
 }
 
 export interface InventoryItem {
   id: string;
   name: string;
-  categories: Category[];
-  minStock: number; // Kept for backward compatibility or global default, though specific size takes precedence
+  category: string; // Main high-level category (e.g., EPP, Insumos)
+  categories: Category[]; // Variants/Sizes
+  minStock: number;
   lastPurchaseDate: string;
   expirationDate: string;
   pricePerUnit: number;
@@ -25,7 +27,7 @@ export interface Employee {
 
 export interface Assignment {
   id: string;
-  personName: string; // This should ideally be linked to Employee ID, but keeping name for now to avoid breaking existing data too much, or we migrate.
+  personName: string;
   equipment: string;
   category: string;
   assignmentDate: string;
@@ -40,7 +42,8 @@ export interface BulkAssignment {
 
 export interface NewProduct {
   name: string;
-  categories: { name: string; stock: number; minStock: number }[];
+  category: string; // Main high-level category
+  categories: { name: string; stock: number; minStock: number; barcode?: string }[];
   minStock: number;
   lastPurchaseDate: string;
   expirationDate: string;

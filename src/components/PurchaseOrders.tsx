@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, Settings, ChevronDown } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, Clock, Settings, ChevronDown, Upload } from 'lucide-react';
 import { PurchaseOrder } from '../types';
 import PurchaseOrderModal from './PurchaseOrderModal';
 import PDFViewerModal from './PDFViewerModal';
+import InvoiceModal from './InvoiceModal';
 
 interface PurchaseOrdersProps {
     orders: PurchaseOrder[];
@@ -49,6 +50,10 @@ const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
     const [showPdfModal, setShowPdfModal] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
     const [pdfTitle, setPdfTitle] = useState('');
+
+    // Invoice Modal State
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [editingOrderForInvoice, setEditingOrderForInvoice] = useState<PurchaseOrder | null>(null);
 
     // Column Visibility State
     const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -124,6 +129,18 @@ const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
             setPdfTitle(title);
         }
         setShowPdfModal(true);
+    };
+
+    const handleInvoiceSave = (orderId: number, invoiceData: Partial<PurchaseOrder>) => {
+        const orderToUpdate = orders.find(o => o.id === orderId);
+        if (orderToUpdate) {
+            onUpdateOrder({
+                ...orderToUpdate,
+                ...invoiceData
+            });
+        }
+        setShowInvoiceModal(false);
+        setEditingOrderForInvoice(null);
     };
 
     const formatCurrency = (amount: number) => {
@@ -268,13 +285,23 @@ const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                                                 {order.numeroFactura ? (
                                                     <button
                                                         onClick={() => handleViewDocument(order.numeroOrden, 'invoice')}
-                                                        className="text-clover-600 hover:text-clover-800 hover:underline font-medium flex items-center gap-1"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-full text-xs font-semibold transition-colors"
+                                                        title="Ver Factura"
                                                     >
                                                         <FileText size={14} />
-                                                        {order.numeroFactura}
+                                                        <span>{order.numeroFactura}</span>
                                                     </button>
                                                 ) : (
-                                                    '-'
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingOrderForInvoice(order);
+                                                            setShowInvoiceModal(true);
+                                                        }}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-gray-500 hover:text-clover-600 hover:bg-clover-50 border border-dashed border-gray-300 hover:border-clover-300 rounded-lg text-xs transition-all group"
+                                                    >
+                                                        <Upload size={14} className="group-hover:scale-110 transition-transform" />
+                                                        <span>Agregar</span>
+                                                    </button>
                                                 )}
                                             </td>
                                         )}
@@ -333,6 +360,16 @@ const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                     </table>
                 </div>
             </div>
+
+            <InvoiceModal
+                show={showInvoiceModal}
+                onClose={() => {
+                    setShowInvoiceModal(false);
+                    setEditingOrderForInvoice(null);
+                }}
+                onSave={handleInvoiceSave}
+                order={editingOrderForInvoice}
+            />
 
             <PurchaseOrderModal
                 show={showModal}

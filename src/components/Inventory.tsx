@@ -1,12 +1,14 @@
-import React from 'react';
-import { Plus, ArrowRightLeft, UserPlus, Printer } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, ArrowRightLeft, UserPlus, Printer, Search, ScanBarcode } from 'lucide-react';
 import { InventoryItem, Assignment } from '../types';
 import StockTable from './StockTable';
 import ProductDetailsModal from './ProductDetailsModal';
+import BarcodeScannerModal from './BarcodeScannerModal';
 
 interface InventoryProps {
   inventory: InventoryItem[];
   assignments: Assignment[];
+  productCategories: string[];
   onDeleteProduct: (id: string) => void;
   onEditProduct: (product: InventoryItem) => void;
   onShowAddProduct: () => void;
@@ -17,6 +19,7 @@ interface InventoryProps {
 const Inventory: React.FC<InventoryProps> = ({
   inventory,
   assignments,
+  productCategories,
   onDeleteProduct,
   onEditProduct,
   onShowAddProduct,
@@ -24,6 +27,23 @@ const Inventory: React.FC<InventoryProps> = ({
   onRegisterEntry
 }) => {
   const [selectedProduct, setSelectedProduct] = React.useState<InventoryItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [showScanner, setShowScanner] = useState(false);
+
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.categories.some(cat => cat.barcode?.includes(searchTerm)); // Search by name or barcode
+    const matchesCategory = selectedCategory === 'Todas' || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleScanResult = (code: string) => {
+    setSearchTerm(code);
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.play().catch(e => console.log('Audio play failed', e));
+    setShowScanner(false);
+  };
 
   const handlePrintInventory = () => {
     const iframe = document.createElement('iframe');
@@ -33,7 +53,9 @@ const Inventory: React.FC<InventoryProps> = ({
     iframe.style.border = 'none';
     document.body.appendChild(iframe);
 
-    const totalStock = inventory.reduce((sum, item) =>
+    // Use filtered inventory for print if desired, or all inventory. Let's print visible (filtered) for better utility.
+    const itemsToPrint = filteredInventory;
+    const totalStock = itemsToPrint.reduce((sum, item) =>
       sum + item.categories.reduce((cSum, cat) => cSum + cat.stock, 0), 0
     );
 
@@ -60,20 +82,24 @@ const Inventory: React.FC<InventoryProps> = ({
           <table>
             <thead>
               <tr>
+                <th>Categoría</th>
                 <th>Producto</th>
-                <th>Talla / Categoría</th>
+                <th>Talla / Variante</th>
                 <th>Stock Actual</th>
                 <th>Stock Mínimo</th>
+                <th>Código de Barras</th>
               </tr>
             </thead>
             <tbody>
-              ${inventory.map(item =>
+              ${itemsToPrint.map(item =>
       item.categories.map((cat, idx) => `
                   <tr>
+                    <td>${idx === 0 ? item.category || '-' : ''}</td>
                     <td>${idx === 0 ? `<strong>${item.name}</strong>` : ''}</td>
                     <td>${cat.name}</td>
                     <td>${cat.stock}</td>
                     <td>${cat.minStock || '-'}</td>
+                    <td>${cat.barcode || '-'}</td>
                   </tr>
                 `).join('')
     ).join('')}
@@ -95,10 +121,6 @@ const Inventory: React.FC<InventoryProps> = ({
       setTimeout(() => {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
-        // Allow some time for the print dialog to open before removing, 
-        // though removing it might be delayed until after the user interacts in some browsers.
-        // A safe bet is a longer timeout or just 10 seconds to ensure the dialog had time to spin up.
-        // Or simply wait.
         setTimeout(() => {
           document.body.removeChild(iframe);
         }, 1000);
@@ -146,8 +168,45 @@ const Inventory: React.FC<InventoryProps> = ({
         </div>
       </div>
 
+      {/* Search and Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex gap-4 flex-wrap items-center">
+        <div className="flex-1 min-w-[300px] relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o escanear código de barras..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-clover-500 focus:border-transparent outline-none"
+          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <button
+              onClick={() => setShowScanner(true)}
+              className="text-gray-400 hover:text-clover-600 transition-colors"
+              title="Escanear Código de Barras"
+            >
+              <ScanBarcode size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Categoría:</span>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-clover-500 focus:border-transparent outline-none bg-white"
+          >
+            <option value="Todas">Todas</option>
+            {productCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <StockTable
-        inventory={inventory}
+        inventory={filteredInventory}
         onDeleteProduct={onDeleteProduct}
         onEditProduct={(p) => onEditProduct(p)}
         onProductClick={setSelectedProduct}
@@ -157,6 +216,12 @@ const Inventory: React.FC<InventoryProps> = ({
         product={selectedProduct}
         assignments={assignments}
         onClose={() => setSelectedProduct(null)}
+      />
+
+      <BarcodeScannerModal
+        show={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleScanResult}
       />
     </div>
   );
