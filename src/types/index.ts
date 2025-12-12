@@ -55,3 +55,23 @@ export interface NewAssignment {
   quantity: number;
 }
 
+export interface PurchaseOrder {
+  id: number; // Changed to number to match ID from backend/mock
+  numeroOrden: number;
+  anio: number;
+  fechaOrden: string; // YYYY-MM-DD
+  emisor: string;
+  proveedor: string;
+  montoNeto: number;
+  iva: number;
+  montoTotal: number;
+  numeroFactura?: string;
+  guiaDespacho?: string;
+  fechaEmisionFactura?: string;
+  fechaPago?: string;
+  metodoPago?: string;
+  observaciones: string;
+  documentoUrl?: string;
+  documentoNombre?: string;
+}
+

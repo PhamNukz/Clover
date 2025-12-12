@@ -9,9 +9,11 @@ import AddProductModal from './components/AddProductModal';
 import PageTransition from './components/PageTransition';
 import BulkAssignmentModal from './components/BulkAssignmentModal';
 import BulkStockEntryModal, { StockEntry } from './components/BulkStockEntryModal';
+import PurchaseOrders from './components/PurchaseOrders';
+import { PurchaseOrder } from './types';
 
 const App = () => {
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees' | 'purchaseOrder'>('dashboard');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
@@ -39,6 +41,51 @@ const App = () => {
       department: 'General'
     }));
   });
+
+  // Purchase Orders State with Mock Data
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
+    {
+      id: 41,
+      numeroOrden: 41,
+      anio: 2022,
+      fechaOrden: '2022-07-05',
+      emisor: 'Sistema',
+      proveedor: 'Representaciones Somercan',
+      montoNeto: 738680, // Reverse calculated approx
+      iva: 140349,
+      montoTotal: 879029,
+      numeroFactura: '',
+      metodoPago: 'Transferencia',
+      fechaPago: '2022-07-06',
+      observaciones: 'Compra histórica.'
+    },
+    {
+      id: 1,
+      numeroOrden: 1,
+      anio: 2024,
+      fechaOrden: '2024-01-09',
+      emisor: 'Paola',
+      proveedor: 'Ferretería Naval',
+      montoNeto: 226000,
+      iva: 42940,
+      montoTotal: 268940,
+      numeroFactura: '',
+      observaciones: '10 Buzo Overall talla L / 5 Buzo Overall M'
+    },
+    {
+      id: 50,
+      numeroOrden: 50,
+      anio: 2025,
+      fechaOrden: '2025-10-16',
+      emisor: 'Paola',
+      proveedor: 'Full Epp SpA',
+      montoNeto: 57900,
+      iva: 11001,
+      montoTotal: 68901,
+      numeroFactura: '31798',
+      observaciones: '01 par de zapatos anticlavos N°38'
+    }
+  ]);
 
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
@@ -375,6 +422,22 @@ const App = () => {
     }
   };
 
+  const handleAddOrder = (order: Omit<PurchaseOrder, 'id'>) => {
+    const newId = Math.max(...purchaseOrders.map(o => o.id), 0) + 1;
+    setPurchaseOrders([...purchaseOrders, { ...order, id: newId }]);
+  };
+
+  const handleUpdateOrder = (updatedOrder: PurchaseOrder) => {
+    setPurchaseOrders(purchaseOrders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+  };
+
+  const handleDeleteOrder = (id: number) => {
+    if (confirm('¿Está seguro de eliminar esta orden?')) {
+      setPurchaseOrders(purchaseOrders.filter(o => o.id !== id));
+    }
+  };
+
+
   const selectedProduct = bulkEquipment ? inventory.find(item => item.name === bulkEquipment) : null;
   const needsCategorySelection = selectedProduct && selectedProduct.categories.length > 1;
 
@@ -416,6 +479,15 @@ const App = () => {
               onEditEmployee={handleEditEmployee}
               onDeleteEmployee={handleDeleteEmployee}
               onDeleteAssignment={deleteAssignment}
+            />
+          )}
+
+          {activeMenu === 'purchaseOrder' && (
+            <PurchaseOrders
+              orders={purchaseOrders}
+              onAddOrder={handleAddOrder}
+              onUpdateOrder={handleUpdateOrder}
+              onDeleteOrder={handleDeleteOrder}
             />
           )}
         </PageTransition>

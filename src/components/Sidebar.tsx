@@ -3,8 +3,8 @@ import { Package, TrendingUp, Users } from 'lucide-react';
 import logo from '../assets/cropped-logo-clover-integral-.svg';
 
 interface SidebarProps {
-  activeMenu: 'dashboard' | 'inventory' | 'employees';
-  setActiveMenu: (menu: 'dashboard' | 'inventory' | 'employees') => void;
+  activeMenu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder';
+  setActiveMenu: (menu: 'dashboard' | 'inventory' | 'employees' | 'purchaseOrder') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) => {
@@ -45,6 +45,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) => {
         >
           <Users size={20} className="text-gray-900" />
           <span>Empleados</span>
+        </button>
+        <button
+          onClick={() => setActiveMenu('purchaseOrder')}
+          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeMenu === 'purchaseOrder'
+            ? 'bg-clover-100 border-2 border-clover-600 text-gray-900 shadow-lg font-semibold'
+            : 'text-gray-900 hover:bg-clover-50 font-medium'
+            }`}
+        >
+          <Package size={20} className="text-gray-900" />
+          <span>Ordenes compra</span>
         </button>
       </nav>
     </div>

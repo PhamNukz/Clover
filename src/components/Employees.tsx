@@ -184,7 +184,7 @@ const Employees: React.FC<EmployeesProps> = ({
                                                 // It needs all props.
                                                 searchEmployee=""
                                                 allEmployees={[]}
-                                                onDeleteAssignment={() => { }} // Read-only view here? Or allow delete? User didn't specify, but "igual a la de asignaciones" implies functionality.
+                                                onDeleteAssignment={onDeleteAssignment}
                                                 // If we want funcionality we need to pass the real handlers.
                                                 // But 'onDeleteAssignment' is passed to Employees component? Yes.
                                                 onSelectEmployee={() => { }}
