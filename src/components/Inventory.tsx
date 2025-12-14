@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Plus, ArrowRightLeft, UserPlus, Printer, Search, ScanBarcode } from 'lucide-react';
-import { InventoryItem, Assignment } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, ArrowRightLeft, UserPlus, Printer, Search, ScanBarcode, Settings, ChevronDown } from 'lucide-react';
+import { InventoryItem, Assignment, Role } from '../types';
 import StockTable from './StockTable';
 import ProductDetailsModal from './ProductDetailsModal';
 import BarcodeScannerModal from './BarcodeScannerModal';
@@ -9,6 +9,7 @@ interface InventoryProps {
   inventory: InventoryItem[];
   assignments: Assignment[];
   productCategories: string[];
+  userRole: Role;
   onDeleteProduct: (id: string) => void;
   onEditProduct: (product: InventoryItem) => void;
   onShowAddProduct: () => void;
@@ -16,10 +17,22 @@ interface InventoryProps {
   onRegisterEntry: () => void;
 }
 
+const AVAILABLE_COLUMNS = [
+  { id: 'producto', label: 'Producto' },
+  { id: 'tallas', label: 'Tallas' },
+  { id: 'stock', label: 'Stock Total' },
+  { id: 'vencimiento', label: 'Vencimiento' },
+  { id: 'codigos', label: 'Códigos de Barras' },
+  { id: 'acciones', label: 'Acciones' }
+];
+
+const DEFAULT_VISIBLE_COLUMNS = ['producto', 'tallas', 'stock', 'vencimiento', 'acciones'];
+
 const Inventory: React.FC<InventoryProps> = ({
   inventory,
   assignments,
   productCategories,
+  userRole,
   onDeleteProduct,
   onEditProduct,
   onShowAddProduct,
@@ -31,6 +44,38 @@ const Inventory: React.FC<InventoryProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [showScanner, setShowScanner] = useState(false);
 
+  const isReadOnly = userRole === 'operator';
+
+  // Column Visibility State
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('inventoryVisibleColumns');
+    return saved ? JSON.parse(saved) : DEFAULT_VISIBLE_COLUMNS;
+  });
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('inventoryVisibleColumns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(event.target as Node)) {
+        setShowColumnMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleColumn = (columnId: string) => {
+    setVisibleColumns(prev =>
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
+        : [...prev, columnId]
+    );
+  };
+
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.categories.some(cat => cat.barcode?.includes(searchTerm)); // Search by name or barcode
@@ -40,8 +85,6 @@ const Inventory: React.FC<InventoryProps> = ({
 
   const handleScanResult = (code: string) => {
     setSearchTerm(code);
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(e => console.log('Audio play failed', e));
     setShowScanner(false);
   };
 
@@ -134,37 +177,73 @@ const Inventory: React.FC<InventoryProps> = ({
         <h2 className="text-3xl font-bold text-gray-900">Inventario</h2>
 
         <div className="flex gap-3">
+          {/* Column Toggle Dropdown */}
+          <div className="relative" ref={columnMenuRef}>
+            <button
+              onClick={() => setShowColumnMenu(!showColumnMenu)}
+              className="flex items-center space-x-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition shadow-sm h-full"
+              title="Configurar columnas"
+            >
+              <Settings size={20} />
+              <ChevronDown size={16} />
+            </button>
+            {showColumnMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                <div className="p-3">
+                  <h4 className="font-semibold text-gray-900 mb-2 text-sm">Columnas Visibles</h4>
+                  <div className="space-y-2">
+                    {AVAILABLE_COLUMNS.map(col => (
+                      <label key={col.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(col.id)}
+                          onChange={() => toggleColumn(col.id)}
+                          className="rounded border-gray-300 text-clover-600 focus:ring-clover-500"
+                        />
+                        <span className="text-sm text-gray-700">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handlePrintInventory}
             className="flex items-center space-x-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-lg"
           >
             <Printer size={20} />
-            <span>Imprimir Bodega</span>
+            <span>Imprimir</span>
           </button>
 
-          <button
-            onClick={onRegisterEntry}
-            className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-lg"
-          >
-            <ArrowRightLeft size={20} />
-            <span>Control de Stock</span>
-          </button>
+          {!isReadOnly && (
+            <>
+              <button
+                onClick={onRegisterEntry}
+                className="flex items-center space-x-2 bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition shadow-lg font-bold"
+              >
+                <ArrowRightLeft size={20} />
+                <span>Control de Stock</span>
+              </button>
 
-          <button
-            onClick={onStartBulkAssignment}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-lg"
-          >
-            <UserPlus size={20} />
-            <span>Asignar Equipos</span>
-          </button>
+              <button
+                onClick={onStartBulkAssignment}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-lg"
+              >
+                <UserPlus size={20} />
+                <span>Asignar</span>
+              </button>
 
-          <button
-            onClick={onShowAddProduct}
-            className="flex items-center space-x-2 bg-clover-600 text-white px-4 py-2 rounded-lg hover:bg-clover-700 transition shadow-lg"
-          >
-            <Plus size={20} />
-            <span>Agregar Producto</span>
-          </button>
+              <button
+                onClick={onShowAddProduct}
+                className="flex items-center space-x-2 bg-clover-600 text-white px-4 py-2 rounded-lg hover:bg-clover-700 transition shadow-lg"
+              >
+                <Plus size={20} />
+                <span>Agregar</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -176,7 +255,23 @@ const Inventory: React.FC<InventoryProps> = ({
             type="text"
             placeholder="Buscar por nombre o escanear código de barras..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              // Check for exact barcode match as we type (or scan)
+              const match = inventory.some(item => item.categories.some(c => c.barcode === e.target.value));
+              if (match && e.target.value.length > 3) {
+                // Beep handled in onKeyDown for enter, or could be here
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const match = inventory.find(item => item.categories.some(c => c.barcode === searchTerm));
+                if (match) {
+                  const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                  audio.play().catch(() => { });
+                }
+              }
+            }}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-clover-500 focus:border-transparent outline-none"
           />
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -210,6 +305,8 @@ const Inventory: React.FC<InventoryProps> = ({
         onDeleteProduct={onDeleteProduct}
         onEditProduct={(p) => onEditProduct(p)}
         onProductClick={setSelectedProduct}
+        visibleColumns={visibleColumns}
+        readOnly={isReadOnly}
       />
 
       <ProductDetailsModal

@@ -46,8 +46,8 @@ const HealthProductSelectionModal: React.FC<HealthProductSelectionModalProps> = 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[80vh] animate-scaleIn">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
                     <h2 className="text-xl font-bold text-gray-900">Seleccionar Productos</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">

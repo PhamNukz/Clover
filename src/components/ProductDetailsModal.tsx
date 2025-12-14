@@ -25,10 +25,10 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ product, assi
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-fadeIn">
             {/* Click inside stops propagation so backdrop click works on the outer div */}
             <div
-                className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col"
+                className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col animate-scaleIn"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -82,6 +82,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ product, assi
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Talla</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código de Barras</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Actual</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Mínimo</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
@@ -93,6 +94,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ product, assi
                                         return (
                                             <tr key={idx}>
                                                 <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cat.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">{cat.barcode || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cat.stock}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cat.minStock || 0}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">

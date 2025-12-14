@@ -12,8 +12,8 @@ const PDFViewerModal: React.FC<PDFViewerModalProps> = ({ show, onClose, pdfUrl, 
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] shadow-xl overflow-hidden flex flex-col animate-scaleIn">
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h2 className="text-lg font-bold text-gray-900">{title}</h2>
                     <button

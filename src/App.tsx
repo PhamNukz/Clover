@@ -11,8 +11,11 @@ import BulkAssignmentModal from './components/BulkAssignmentModal';
 import BulkStockEntryModal, { StockEntry } from './components/BulkStockEntryModal';
 import PurchaseOrders from './components/PurchaseOrders';
 import CategoriesManagement from './components/CategoriesManagement';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './components/LoginPage';
 
-const App = () => {
+const AuthenticatedApp = () => {
+  const { user, logout } = useAuth();
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'inventory' | 'employees' | 'purchaseOrder' | 'categories'>('dashboard');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
@@ -46,7 +49,7 @@ const App = () => {
     return uniqueNames.map((name, index) => ({
       id: `emp-${index}`,
       name: name,
-      role: 'Empleado',
+      role: 'Colaborador',
       department: 'General'
     }));
   });
@@ -319,7 +322,7 @@ const App = () => {
     setBulkAssignmentStep('assign-categories');
   };
 
-  const updateBulkAssignment = (personName: string, field: 'category' | 'quantity', value: string | number) => {
+  const updateBulkAssignment = (personName: string, field: 'category' | 'quantity' | 'renewalPeriod', value: string | number) => {
     setBulkAssignments(bulkAssignments.map(ba =>
       ba.personName === personName ? { ...ba, [field]: value } : ba
     ));
@@ -338,14 +341,26 @@ const App = () => {
       }
     }
 
-    const newAssignments: Assignment[] = bulkAssignments.map(ba => ({
-      id: `${Date.now()}-${Math.random()}`,
-      personName: ba.personName,
-      equipment: bulkEquipment,
-      category: ba.category,
-      assignmentDate: bulkDate,
-      quantity: ba.quantity || 1
-    }));
+    const newAssignments: Assignment[] = bulkAssignments.map(ba => {
+      let renewalDateStr = undefined;
+      // Calculate Renewal Date if period is set
+      if (ba.renewalPeriod && ba.renewalPeriod > 0) {
+        const date = new Date(bulkDate); // format is YYYY-MM-DD
+        // Add months
+        date.setMonth(date.getMonth() + ba.renewalPeriod);
+        renewalDateStr = date.toISOString().split('T')[0];
+      }
+
+      return {
+        id: `${Date.now()}-${Math.random()}`,
+        personName: ba.personName,
+        equipment: bulkEquipment,
+        category: ba.category,
+        assignmentDate: bulkDate,
+        renewalDate: renewalDateStr,
+        quantity: ba.quantity || 1
+      };
+    });
 
     // Deduct stock
     const updatedInventory = inventory.map(item => {
@@ -382,42 +397,51 @@ const App = () => {
     setBulkDate('');
   };
 
-  const handleBulkStockEntry = (entries: StockEntry[], type: 'entry' | 'exit') => {
+  const handleBulkStockEntry = (entries: StockEntry[], type: 'entry' | 'exit' | 'transit_out' | 'transit_return') => {
     const updatedInventory = [...inventory];
     const newAssignments: Assignment[] = [];
     const dateStr = new Date().toLocaleDateString('es-ES');
 
     // Validation for exits first
-    if (type === 'exit') {
+    if (type === 'exit' || type === 'transit_out') {
       let possible = true;
       entries.forEach(entry => {
         const product = updatedInventory.find(p => p.name === entry.productName);
         const cat = product?.categories.find(c => c.name === entry.category);
         if (!product || !cat || cat.stock < entry.quantity) {
           possible = false;
-          // Ideally we show specific error but alert is fine for now
         }
       });
 
       if (!possible) {
-        alert("Error: No hay suficiente stock para realizar algunas de las salidas solicitadas.");
+        alert("Error: No hay suficiente stock para realizar algunas de las salidas o tránsitos solicitados.");
+        return;
+      }
+    }
+
+    if (type === 'transit_return') {
+      let possible = true;
+      entries.forEach(entry => {
+        const product = updatedInventory.find(p => p.name === entry.productName);
+        const cat = product?.categories.find(c => c.name === entry.category);
+        const inTransit = cat?.inTransit || 0;
+        if (!product || !cat || inTransit < entry.quantity) {
+          possible = false;
+        }
+      });
+      if (!possible) {
+        alert("Error: No hay suficiente stock en tránsito para realizar el retorno.");
         return;
       }
     }
 
     entries.forEach(entry => {
       if (entry.isNewProduct && type === 'entry') {
-        // Create new product logic
-        // For now, we'll just open the add product modal pre-filled or handle it simply
-        // Since the requirement says "create one right there", we might need to add it directly if we have enough info
-        // But we only have name and category/size name. We need minStock, price, etc.
-        // So maybe we just add it with defaults or redirect to add product.
-        // Let's add it with defaults for now to satisfy "create one right there"
         const newProduct: InventoryItem = {
           id: Date.now().toString() + Math.random(),
           name: entry.productName,
           category: 'Generales',
-          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10, barcode: '' }],
+          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10, barcode: '', inTransit: 0 }],
           minStock: 10, // Default
           lastPurchaseDate: new Date().toISOString().split('T')[0],
           expirationDate: '',
@@ -432,12 +456,13 @@ const App = () => {
           const categoryIndex = product.categories.findIndex(c => c.name === entry.category);
 
           if (categoryIndex >= 0) {
-            if (type === 'entry') {
-              product.categories[categoryIndex].stock += entry.quantity;
-            } else {
-              product.categories[categoryIndex].stock = Math.max(0, product.categories[categoryIndex].stock - entry.quantity);
+            const cat = product.categories[categoryIndex];
 
-              // Log waste assignment
+            if (type === 'entry') {
+              cat.stock += entry.quantity;
+            } else if (type === 'exit') {
+              cat.stock = Math.max(0, cat.stock - entry.quantity);
+              // Log waste
               newAssignments.push({
                 id: `${Date.now()}-${Math.random()}`,
                 personName: 'MERMA / SALIDA',
@@ -446,16 +471,22 @@ const App = () => {
                 assignmentDate: dateStr,
                 quantity: entry.quantity
               });
+            } else if (type === 'transit_out') {
+              cat.stock = Math.max(0, cat.stock - entry.quantity);
+              cat.inTransit = (cat.inTransit || 0) + entry.quantity;
+            } else if (type === 'transit_return') {
+              cat.inTransit = Math.max(0, (cat.inTransit || 0) - entry.quantity);
+              cat.stock += entry.quantity;
             }
+
           } else {
-            // Add new category if it doesn't exist (though modal usually selects existing)
-            // If user typed a new category in modal (if we allowed it), we'd add it here
             if (type === 'entry') {
               product.categories.push({
                 id: Date.now().toString(),
                 name: entry.category,
                 stock: entry.quantity,
-                minStock: 10
+                minStock: 10,
+                inTransit: 0
               });
             }
           }
@@ -488,9 +519,26 @@ const App = () => {
   const selectedProduct = bulkEquipment ? inventory.find(item => item.name === bulkEquipment) : null;
   const needsCategorySelection = selectedProduct && selectedProduct.categories.length > 1;
 
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  // RBAC Routing Logic
+  // If user is operator, restrict to Dashboard, Inventory
+  // If user is warehouse, restrict to all EXCEPT PurchaseOrder
+  const canAccessPurchaseOrders = user.role === 'admin';
+  const canAccessEmployees = user.role === 'admin' || user.role === 'warehouse';
+  const canAccessCategories = user.role === 'admin' || user.role === 'warehouse';
+
   return (
     <div className="flex h-screen bg-clover-50">
-      <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+      <Sidebar
+        activeMenu={activeMenu}
+        setActiveMenu={setActiveMenu}
+        userRole={user.role}
+        onLogout={logout}
+      />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-clover-50">
@@ -500,6 +548,8 @@ const App = () => {
               inventory={inventory}
               assignmentsCount={assignments.length}
               assignments={assignments}
+              purchaseOrders={purchaseOrders}
+              userRole={user.role}
               onRegisterEntry={() => {
                 setShowBulkEntry(true);
               }}
@@ -511,6 +561,7 @@ const App = () => {
               inventory={inventory}
               assignments={assignments}
               productCategories={productCategories}
+              userRole={user.role}
               onDeleteProduct={deleteProduct}
               onEditProduct={handleEditProduct}
               onShowAddProduct={() => setShowAddProduct(true)}
@@ -519,7 +570,7 @@ const App = () => {
             />
           )}
 
-          {activeMenu === 'employees' && (
+          {activeMenu === 'employees' && canAccessEmployees && (
             <Employees
               employees={employees}
               assignments={assignments}
@@ -530,7 +581,7 @@ const App = () => {
             />
           )}
 
-          {activeMenu === 'purchaseOrder' && (
+          {activeMenu === 'purchaseOrder' && canAccessPurchaseOrders && (
             <PurchaseOrders
               orders={purchaseOrders}
               onAddOrder={handleAddOrder}
@@ -539,7 +590,7 @@ const App = () => {
             />
           )}
 
-          {activeMenu === 'categories' && (
+          {activeMenu === 'categories' && canAccessCategories && (
             <CategoriesManagement
               categories={productCategories}
               onAddCategory={handleAddCategory}
@@ -556,6 +607,7 @@ const App = () => {
         isEditing={!!editingProductId}
         newProduct={newProduct}
         productCategories={productCategories}
+        inventory={inventory}
         onClose={() => {
           setShowAddProduct(false);
           setEditingProductId(null);
@@ -611,6 +663,14 @@ const App = () => {
         }}
       />
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 };
 

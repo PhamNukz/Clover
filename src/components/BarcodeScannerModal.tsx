@@ -62,8 +62,8 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ show, onClose
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-fadeIn">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md relative animate-scaleIn">
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 bg-white rounded-full p-1 z-10"

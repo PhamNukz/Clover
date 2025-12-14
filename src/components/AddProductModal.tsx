@@ -1,13 +1,13 @@
-import React, { useRef, useState } from 'react';
-import { X, Trash2, ScanLine } from 'lucide-react';
-import { NewProduct } from '../types';
-import BarcodeScannerModal from './BarcodeScannerModal';
+import React from 'react';
+import { X, Trash2, ScanLine, AlertTriangle } from 'lucide-react';
+import { NewProduct, InventoryItem } from '../types';
 
 interface AddProductModalProps {
   show: boolean;
   isEditing?: boolean;
   newProduct: NewProduct;
   productCategories: string[];
+  inventory: InventoryItem[];
   onClose: () => void;
   onAddProduct: () => void;
   onUpdateProduct: (product: NewProduct) => void;
@@ -21,6 +21,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   isEditing = false,
   newProduct,
   productCategories,
+  inventory,
   onClose,
   onAddProduct,
   onUpdateProduct,
@@ -28,8 +29,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   onUpdateCategory,
   onRemoveCategory
 }) => {
-  const [scanningIndex, setScanningIndex] = useState<number | null>(null);
-  const [showScanner, setShowScanner] = useState(false);
+  // Removed scanner state as we rely on external "Barcode to PC" app (keyboard emulation)
 
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -39,27 +39,34 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [show, onClose]);
 
-  const startScanning = (index: number) => {
-    setScanningIndex(index);
-    setShowScanner(true);
-  };
+  const checkDuplicate = (code: string): string | null => {
+    if (!code) return null;
+    for (const prod of inventory) {
+      // Skip current product if editing (based on name match, roughly, since we don't have ID here easily efficiently without more props, but good enough for now. Actually name match is risky if name changed. Ideally we'd compare ID but NewProduct doesn't have it.
+      // However, duplication check is GLOBAL. If I edit "Helmet" and keep its barcode, it will find "Helmet".
+      // We should simplisticly check: if found, return product name.
+      // But if we are editing, we don't want to warn about ITSELF.
+      // Since NewProduct doesn't have ID, we rely on name? Or we just warn anyway?
+      // Let's warn if found product name !== newProduct.name (assuming name hasn't changed yet?? No.)
+      // It's safer to just warn "Used by [Product Name]". If it's the same product, user knows.
 
-  const handleScanResult = (code: string) => {
-    if (scanningIndex !== null) {
-      onUpdateCategory(scanningIndex, 'barcode', code);
-      // Play a beep sound for feedback
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.log('Audio play failed', e));
-      setShowScanner(false);
-      setScanningIndex(null);
+      // More robust: compare to all products except the one being edited (if we could).
+      // For now: find any product that uses this barcode.
+      const foundCat = prod.categories.find(c => c.barcode === code);
+      if (foundCat) {
+        // If we are editing and the found product has the SAME name as current input, ignore it (it's itself).
+        if (isEditing && prod.name === newProduct.name) continue;
+        return `${prod.name} (${foundCat.name})`;
+      }
     }
+    return null;
   };
 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fadeIn">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200 animate-scaleIn">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-900">{isEditing ? 'Editar Producto' : 'Agregar Producto'}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
@@ -105,71 +112,74 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 + Agregar Talla
               </button>
             </div>
-            {newProduct.categories.map((cat, index) => (
-              <div key={index} className="flex gap-2 mb-2 items-end">
-                <div className="flex-[2]">
-                  <label className="text-xs text-gray-500 mb-1 block">Variante</label>
-                  <input
-                    type="text"
-                    value={cat.name}
-                    onChange={(e) => onUpdateCategory(index, 'name', e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-                    placeholder="Ej: S, M"
-                  />
-                </div>
+            {newProduct.categories.map((cat, index) => {
+              const duplicateInfo = checkDuplicate(cat.barcode || '');
+              return (
+                <div key={index} className="flex flex-col mb-2">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-[2]">
+                      <label className="text-xs text-gray-500 mb-1 block">Variante</label>
+                      <input
+                        type="text"
+                        value={cat.name}
+                        onChange={(e) => onUpdateCategory(index, 'name', e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                        placeholder="Ej: S, M"
+                      />
+                    </div>
 
-                <div className="flex-[2]">
-                  <label className="text-xs text-gray-500 mb-1 block">Código de Barras</label>
-                  <div className="flex relative">
-                    <input
-                      type="text"
-                      value={cat.barcode || ''}
-                      onChange={(e) => onUpdateCategory(index, 'barcode', e.target.value)}
-                      className="w-full border border-gray-300 rounded-l px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500 pl-8"
-                      placeholder="Escanear..."
-                    />
-                    <ScanLine size={16} className="absolute left-2.5 top-3 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => startScanning(index)}
-                      className={`px-3 border border-l-0 border-gray-300 rounded-r hover:bg-gray-50 transition-colors ${scanningIndex === index ? 'bg-clover-100 text-clover-700' : 'text-gray-500'}`}
-                      title="Escanear con cámara"
-                    >
-                      <ScanLine size={18} />
-                    </button>
+                    <div className="flex-[2]">
+                      <label className="text-xs text-gray-500 mb-1 block">Código de Barras</label>
+                      <div className="flex relative">
+                        <ScanLine size={16} className="absolute left-3 top-3 text-gray-400" />
+                        <input
+                          type="text"
+                          value={cat.barcode || ''}
+                          onChange={(e) => onUpdateCategory(index, 'barcode', e.target.value)}
+                          className={`w-full border ${duplicateInfo ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-clover-500'} rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 pl-9`}
+                          placeholder="Click y escanear..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 mb-1 block">Stock</label>
+                      <input
+                        type="number"
+                        value={cat.stock}
+                        onChange={(e) => onUpdateCategory(index, 'stock', parseInt(e.target.value) || 0)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 mb-1 block">Min</label>
+                      <input
+                        type="number"
+                        value={cat.minStock}
+                        onChange={(e) => onUpdateCategory(index, 'minStock', parseInt(e.target.value) || 0)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
+                        placeholder="Min"
+                      />
+                    </div>
+                    {newProduct.categories.length > 1 && (
+                      <button
+                        onClick={() => onRemoveCategory(index)}
+                        className="text-red-600 hover:text-red-800 transition-colors p-2 mb-0.5"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
                   </div>
+                  {duplicateInfo && (
+                    <div className="flex items-center gap-1 text-red-600 text-xs mt-1 ml-1">
+                      <AlertTriangle size={12} />
+                      <span>Código duplicado: En uso por <strong>{duplicateInfo}</strong></span>
+                    </div>
+                  )}
                 </div>
-
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Stock</label>
-                  <input
-                    type="number"
-                    value={cat.stock}
-                    onChange={(e) => onUpdateCategory(index, 'stock', parseInt(e.target.value) || 0)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-                    placeholder="0"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Min</label>
-                  <input
-                    type="number"
-                    value={cat.minStock}
-                    onChange={(e) => onUpdateCategory(index, 'minStock', parseInt(e.target.value) || 0)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
-                    placeholder="Min"
-                  />
-                </div>
-                {newProduct.categories.length > 1 && (
-                  <button
-                    onClick={() => onRemoveCategory(index)}
-                    className="text-red-600 hover:text-red-800 transition-colors p-2 mb-0.5"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -230,12 +240,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
         </div>
       </div>
-
-      <BarcodeScannerModal
-        show={showScanner}
-        onClose={() => setShowScanner(false)}
-        onScan={handleScanResult}
-      />
     </div>
   );
 };

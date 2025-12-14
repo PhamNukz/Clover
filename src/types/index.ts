@@ -2,8 +2,9 @@ export interface Category {
   id: string;
   name: string;
   stock: number;
-  minStock: number;
+  minStock?: number;
   barcode?: string;
+  inTransit?: number;
 }
 
 export interface InventoryItem {
@@ -31,6 +32,7 @@ export interface Assignment {
   equipment: string;
   category: string;
   assignmentDate: string;
+  renewalDate?: string;
   quantity: number;
 }
 
@@ -38,12 +40,13 @@ export interface BulkAssignment {
   personName: string;
   category: string;
   quantity: number;
+  renewalPeriod?: number; // In months
 }
 
 export interface NewProduct {
   name: string;
   category: string; // Main high-level category
-  categories: { name: string; stock: number; minStock: number; barcode?: string }[];
+  categories: { name: string; stock: number; minStock: number; barcode?: string; inTransit?: number }[];
   minStock: number;
   lastPurchaseDate: string;
   expirationDate: string;
@@ -78,3 +81,13 @@ export interface PurchaseOrder {
   documentoNombre?: string;
 }
 
+
+export type Role = 'admin' | 'operator' | 'warehouse';
+
+export interface User {
+  id: string;
+  username: string;
+  password?: string;
+  name: string;
+  role: Role;
+}

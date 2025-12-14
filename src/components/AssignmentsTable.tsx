@@ -11,6 +11,7 @@ interface AssignmentsTableProps {
   onSelectEmployee: (employee: string) => void;
   onSearchEmployee: (search: string) => void;
   hideSearch?: boolean;
+  showSummary?: boolean;
 }
 
 const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
@@ -21,7 +22,8 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
   onDeleteAssignment,
   onSelectEmployee,
   onSearchEmployee,
-  hideSearch = false
+  hideSearch = false,
+  showSummary = true
 }) => {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Assignment; direction: 'asc' | 'desc' } | null>({ key: 'assignmentDate', direction: 'desc' });
 
@@ -44,8 +46,11 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
 
-    if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-    if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+    const aValue = a[key] ?? '';
+    const bValue = b[key] ?? '';
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
     return 0;
   });
 
@@ -69,7 +74,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                   onSearchEmployee(e.target.value);
                   onSelectEmployee('');
                 }}
-                placeholder="Buscar por empleado o equipo..."
+                placeholder="Buscar por colaborador o equipo..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-clover-500"
               />
             </div>
@@ -83,7 +88,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
               }}
               className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-clover-500"
             >
-              <option value="">Todos los empleados</option>
+              <option value="">Todos los colaboradores</option>
               {allEmployees.map(emp => (
                 <option key={emp} value={emp}>{emp}</option>
               ))}
@@ -93,7 +98,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
       )}
 
       {/* Resumen por empleado seleccionado */}
-      {selectedEmployee && (
+      {selectedEmployee && showSummary && (
         <div className="bg-clover-50 border border-clover-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <UserCheck className="text-clover-600" size={24} />
@@ -124,6 +129,7 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                   <ArrowUpDown size={14} />
                 </button>
               </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Renovación</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border border-gray-200">Acciones</th>
             </tr>
           </thead>
@@ -139,6 +145,9 @@ const AssignmentsTable: React.FC<AssignmentsTableProps> = ({
                 </td>
                 <td className="px-4 py-3 border border-gray-200 text-center font-semibold text-gray-900">{assignment.quantity || 1}</td>
                 <td className="px-4 py-3 border border-gray-200 text-gray-700">{assignment.assignmentDate}</td>
+                <td className="px-4 py-3 border border-gray-200 text-gray-700">
+                  {assignment.renewalDate ? assignment.renewalDate : '-'}
+                </td>
                 <td className="px-4 py-3 border border-gray-200">
                   <button
                     onClick={() => onDeleteAssignment(assignment.id)}

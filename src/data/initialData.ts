@@ -4,6 +4,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '1',
     name: 'PANTALÓN SEGURIDAD REFLECTANTE',
+    category: 'EPP',
     categories: [
       { id: '1-1', name: 'S', stock: 12 },
       { id: '1-2', name: 'M', stock: 18 },
@@ -19,6 +20,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '2',
     name: 'CASCO BLANCO',
+    category: 'EPP',
     categories: [
       { id: '2-1', name: 'Ajustable', stock: 45 }
     ],
@@ -30,6 +32,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '3',
     name: 'POLERAS NEGRAS',
+    category: 'EPP',
     categories: [
       { id: '3-1', name: 'S', stock: 22 },
       { id: '3-2', name: 'M', stock: 30 },
@@ -45,6 +48,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '4',
     name: 'GUANTES CABRITILLA CORTOS',
+    category: 'EPP',
     categories: [
       { id: '4-1', name: 'Único', stock: 60 }
     ],
@@ -56,6 +60,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '5',
     name: 'GUANTES ALBAÑIL',
+    category: 'EPP',
     categories: [
       { id: '5-1', name: 'Único', stock: 55 }
     ],
@@ -67,6 +72,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '6',
     name: 'ANTIPARRAS',
+    category: 'EPP',
     categories: [
       { id: '6-1', name: 'Estándar', stock: 40 }
     ],
@@ -78,6 +84,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '7',
     name: 'LENTES PARA POLVO',
+    category: 'EPP',
     categories: [
       { id: '7-1', name: 'Estándar', stock: 35 }
     ],
@@ -89,6 +96,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '8',
     name: 'LEGIONARIOS',
+    category: 'EPP',
     categories: [
       { id: '8-1', name: 'Único', stock: 28 }
     ],
@@ -100,6 +108,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '9',
     name: 'CHAQUETA GEÓLOGO POPLIN NARANJA',
+    category: 'EPP',
     categories: [
       { id: '9-1', name: 'S', stock: 8 },
       { id: '9-2', name: 'M', stock: 12 },
@@ -115,6 +124,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '10',
     name: 'FAJA LUMBAR',
+    category: 'EPP',
     categories: [
       { id: '10-1', name: 'S', stock: 10 },
       { id: '10-2', name: 'M', stock: 15 },
@@ -129,6 +139,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '11',
     name: 'BUZOS TYVEK',
+    category: 'EPP',
     categories: [
       { id: '11-1', name: 'M', stock: 20 },
       { id: '11-2', name: 'L', stock: 18 },
@@ -142,6 +153,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '12',
     name: 'CARETAS PROTECCIÓN',
+    category: 'EPP',
     categories: [
       { id: '12-1', name: 'Estándar', stock: 32 }
     ],
@@ -153,6 +165,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '13',
     name: 'MÁSCARA DE PROTECCIÓN DE PARTÍCULAS',
+    category: 'EPP',
     categories: [
       { id: '13-1', name: 'N95', stock: 150 },
       { id: '13-2', name: 'KN95', stock: 120 }
@@ -165,6 +178,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '14',
     name: 'FILTRO PROTECCIÓN DE PARTICULAS',
+    category: 'EPP',
     categories: [
       { id: '14-1', name: 'P100', stock: 80 },
       { id: '14-2', name: 'P95', stock: 70 }
@@ -177,6 +191,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '15',
     name: 'TRAJES IMPERMEABLES',
+    category: 'EPP',
     categories: [
       { id: '15-1', name: 'M', stock: 14 },
       { id: '15-2', name: 'L', stock: 16 },
@@ -190,6 +205,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '16',
     name: 'ZAPATO SEGURIDAD',
+    category: 'EPP',
     categories: [
       { id: '16-1', name: '38', stock: 8 },
       { id: '16-2', name: '39', stock: 10 },
@@ -207,6 +223,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '17',
     name: 'BOTELLA BLOQUEADOR SOLAR',
+    category: 'EPP',
     categories: [
       { id: '17-1', name: '200ml', stock: 45 }
     ],
@@ -218,6 +235,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '18',
     name: 'ARNÉS DE SEGURIDAD',
+    category: 'EPP',
     categories: [
       { id: '18-1', name: 'Ajustable', stock: 25 }
     ],
@@ -229,6 +247,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '19',
     name: 'PALAS CARBONERAS CON MANGO',
+    category: 'Herramientas',
     categories: [
       { id: '19-1', name: 'Estándar', stock: 18 }
     ],
@@ -240,6 +259,7 @@ export const initialInventory: InventoryItem[] = [
   {
     id: '20',
     name: 'ESCOBAS FISCALES',
+    category: 'Herramientas',
     categories: [
       { id: '20-1', name: 'Estándar', stock: 22 }
     ],
