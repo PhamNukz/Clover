@@ -31,7 +31,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ show, onClose
                             scanner.clear().catch(console.error);
                             onClose();
                         },
-                        (errorMessage) => {
+                        () => {
                             // scan failure, usually better to ignore
                             // console.log(errorMessage);
                         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Package } from 'lucide-react';
 import { InventoryItem } from '../types';
 
@@ -44,6 +44,13 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
     const [mode, setMode] = useState<'entry' | 'exit' | 'transit'>('entry');
     const [transitSubMode, setTransitSubMode] = useState<'send' | 'return'>('send');
 
+    // New State for Quantity Confirmation
+    const [askQuantity, setAskQuantity] = useState<boolean | null>(null);
+    const [showQuantityModal, setShowQuantityModal] = useState(false);
+    const [pendingScanData, setPendingScanData] = useState<{ productName: string, category: string, isNew: boolean } | null>(null);
+    const [quantityInputValue, setQuantityInputValue] = useState('');
+    const scanInputRef = useRef<HTMLInputElement>(null);
+
     const theme = mode === 'entry' ? 'clover' : mode === 'exit' ? 'red' : 'purple';
 
     // Helper to get button style based on mode
@@ -68,27 +75,100 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
 
     // Initial load and reset
     useEffect(() => {
-        if (show && entries.length === 0) {
-            setMode('entry');
-            setTransitSubMode('send');
-            setEntries([{
-                id: Date.now().toString(),
-                productName: '',
-                variants: [{ id: Date.now().toString() + '-0', category: '', quantity: 0 }]
-            }]);
+        if (show) {
+            const savedDraft = localStorage.getItem('stock_entry_draft');
+            if (savedDraft) {
+                try {
+                    const parsed = JSON.parse(savedDraft);
+                    setEntries(parsed.entries);
+                    setMode(parsed.mode);
+                    if (parsed.transitSubMode) setTransitSubMode(parsed.transitSubMode);
+                    // Load setting
+                    if (parsed.askQuantity !== undefined) setAskQuantity(parsed.askQuantity);
+                } catch (e) {
+                    console.error("Error loading draft", e);
+                    setEntries([{
+                        id: Date.now().toString(),
+                        productName: '',
+                        variants: [{ id: Date.now().toString() + '-0', category: '', quantity: 0 }]
+                    }]);
+                    setAskQuantity(null);
+                }
+            } else if (entries.length === 0) {
+                setMode('entry');
+                setTransitSubMode('send');
+                setEntries([{
+                    id: Date.now().toString(),
+                    productName: '',
+                    variants: [{ id: Date.now().toString() + '-0', category: '', quantity: 0 }]
+                }]);
+                setAskQuantity(null);
+            }
         }
     }, [show]);
 
     if (!show) return null;
 
-    // --- Logic for "Return from Transit" ---
-    // User selects items to return. We can reuse the same 'entries' structure but filtered to items with inTransit > 0
-    // Actually, 'entries' tracks what the user Wants to do. 
-    // If Mode is Transit-Return, the user should be selecting from existing transit items.
+    // --- Helper to Add/Merge Entry ---
+    const addOrMergeEntry = (productName: string, category: string, quantityToAdd: number) => {
+        setEntries(prev => {
+            const existingEntryIndex = prev.findIndex(entry => entry.productName === productName);
+            const isInitialBlank = prev.length === 1 && !prev[0].productName;
 
-    // Simplification for this iteration:
-    // If Transit-Return: The 'Product Selector' should ideally filter/show items in transit.
-    // For now, let's keep the standard selector but validation will check if they have transit stock to return.
+            if (existingEntryIndex >= 0) {
+                const updatedEntries = [...prev];
+                const existingEntry = { ...updatedEntries[existingEntryIndex] };
+                const existingVariantIndex = existingEntry.variants.findIndex(v => v.category === category);
+
+                if (existingVariantIndex >= 0) {
+                    const updatedVariants = [...existingEntry.variants];
+                    updatedVariants[existingVariantIndex] = {
+                        ...updatedVariants[existingVariantIndex],
+                        quantity: updatedVariants[existingVariantIndex].quantity + quantityToAdd
+                    };
+                    existingEntry.variants = updatedVariants;
+                } else {
+                    existingEntry.variants = [
+                        ...existingEntry.variants,
+                        { id: Date.now().toString() + '-new', category: category, quantity: quantityToAdd }
+                    ];
+                }
+                updatedEntries[existingEntryIndex] = existingEntry;
+                return updatedEntries;
+            } else if (isInitialBlank) {
+                return [{
+                    id: Date.now().toString(),
+                    productName: productName,
+                    variants: [{ id: Date.now().toString() + '-0', category: category, quantity: quantityToAdd }]
+                }];
+            } else {
+                return [...prev, {
+                    id: Date.now().toString(),
+                    productName: productName,
+                    variants: [{ id: Date.now().toString() + '-0', category: category, quantity: quantityToAdd }]
+                }];
+            }
+        });
+    };
+
+    // --- Handle Quantity Input Confirm ---
+    const handleConfirmQuantity = () => {
+        if (pendingScanData && quantityInputValue) {
+            const qty = parseInt(quantityInputValue);
+            if (!isNaN(qty) && qty > 0) {
+                addOrMergeEntry(pendingScanData.productName, pendingScanData.category, qty);
+                setShowQuantityModal(false);
+                setPendingScanData(null);
+                setQuantityInputValue('');
+                // Use setTimeout to ensure the modal is closed and state updated before focusing
+                setTimeout(() => {
+                    if (scanInputRef.current) {
+                        scanInputRef.current.focus();
+                    }
+                }, 50);
+            }
+        }
+    };
 
     const handleProductChange = (id: string, name: string) => {
         const updatedEntries = entries.map(entry => {
@@ -128,6 +208,24 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
 
     const removeEntry = (id: string) => {
         if (entries.length > 1) setEntries(entries.filter(e => e.id !== id));
+    };
+
+    const handleCancel = () => {
+        localStorage.removeItem('stock_entry_draft');
+        setEntries([]);
+        setAskQuantity(null); // Reset choice
+        onClose();
+    };
+
+    const handleSaveDraft = () => {
+        const draft = {
+            entries,
+            mode,
+            transitSubMode,
+            askQuantity // Save setting
+        };
+        localStorage.setItem('stock_entry_draft', JSON.stringify(draft));
+        onClose();
     };
 
     const handleSubmit = () => {
@@ -189,6 +287,7 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
         }
 
         onSave(flatEntries, saveType);
+        localStorage.removeItem('stock_entry_draft');
         setEntries([]);
         onClose();
     };
@@ -238,21 +337,29 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                             <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Escaneo Rápido (Barcode to PC)</label>
                                 <input
+                                    ref={scanInputRef}
                                     type="text"
                                     placeholder="Escanea código..."
                                     className="w-full px-4 py-2 border border-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
-                                            const code = e.currentTarget.value;
+                                            const code = e.currentTarget.value.trim();
+                                            if (!code) return;
+
                                             const foundP = inventory.find(p => p.categories.some(c => c.barcode === code));
+
                                             if (foundP) {
                                                 const cat = foundP.categories.find(c => c.barcode === code);
                                                 if (cat) {
-                                                    setEntries(prev => [...prev, {
-                                                        id: Date.now().toString(),
-                                                        productName: foundP.name,
-                                                        variants: [{ id: Date.now().toString() + '-0', category: cat.name, quantity: 1 }]
-                                                    }]);
+                                                    if (askQuantity) {
+                                                        // Ask for quantity
+                                                        setPendingScanData({ productName: foundP.name, category: cat.name, isNew: false });
+                                                        setQuantityInputValue('');
+                                                        setShowQuantityModal(true);
+                                                    } else {
+                                                        // Auto increment
+                                                        addOrMergeEntry(foundP.name, cat.name, 1);
+                                                    }
                                                     e.currentTarget.value = '';
                                                 }
                                             }
@@ -273,7 +380,14 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                                                 <label className="text-xs text-gray-500">Producto</label>
                                                 <select value={entry.productName} onChange={e => handleProductChange(entry.id, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
                                                     <option value="">Seleccionar...</option>
-                                                    {inventory.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                                                    {inventory.map(p => {
+                                                        const isSelected = entries.some(e => e.productName === p.name && e.id !== entry.id);
+                                                        return (
+                                                            <option key={p.id} value={p.name} disabled={isSelected}>
+                                                                {p.name} {isSelected ? '(Ya seleccionado)' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </div>
                                             <button onClick={() => removeEntry(entry.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={20} /></button>
@@ -361,12 +475,59 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                 </div>
 
                 <div className="p-6 border-t border-gray-100 bg-white flex justify-end gap-3 z-10 relative">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                    <ThemeButton onClick={handleSubmit}>
-                        {mode === 'entry' ? 'Registrar Entrada' : mode === 'exit' ? 'Registrar Salida' : transitSubMode === 'send' ? 'Enviar a Tránsito' : 'Retorno de Tránsito'}
-                    </ThemeButton>
+                    <button onClick={handleCancel} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                    <div className="flex gap-2">
+                        <button onClick={handleSaveDraft} className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                            Guardar
+                        </button>
+                        <ThemeButton onClick={handleSubmit}>
+                            {mode === 'entry' ? 'Registrar Entrada' : mode === 'exit' ? 'Registrar Salida' : transitSubMode === 'send' ? 'Enviar a Tránsito' : 'Retorno de Tránsito'}
+                        </ThemeButton>
+                    </div>
                 </div>
             </div>
+
+            {/* Quantity Confirmation Setup Modal */}
+            {askQuantity === null && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[60] animate-fadeIn">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center animate-scaleIn">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Configuración de Escaneo</h3>
+                        <p className="text-gray-600 mb-6">¿Desea ingresar la cantidad manualmente después de cada confirmación?</p>
+                        <div className="flex gap-3 justify-center">
+                            <button onClick={() => setAskQuantity(false)} className="px-6 py-2 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">No</button>
+                            <button onClick={() => setAskQuantity(true)} className="px-6 py-2 bg-clover-600 text-white rounded-xl font-bold hover:bg-clover-700 shadow-lg shadow-clover-200">Sí</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quantity Input Modal */}
+            {showQuantityModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[70] animate-fadeIn">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full animate-scaleIn relative">
+                        <div className="mb-4 text-center">
+                            <span className="text-sm font-bold text-clover-600 tracking-wider uppercase mb-1 block">Confirmar Cantidad</span>
+                            <h3 className="text-xl font-bold text-gray-900">{pendingScanData?.productName}</h3>
+                            <p className="text-gray-500">{pendingScanData?.category}</p>
+                        </div>
+                        <input
+                            type="number"
+                            value={quantityInputValue}
+                            onChange={(e) => setQuantityInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleConfirmQuantity();
+                            }}
+                            autoFocus
+                            className="w-full text-center text-4xl font-bold border-b-2 border-clover-500 focus:outline-none py-4 mb-6"
+                            placeholder=""
+                        />
+                        <div className="flex gap-3">
+                            <button onClick={() => { setShowQuantityModal(false); setPendingScanData(null); }} className="flex-1 py-3 text-gray-500 font-medium hover:bg-gray-50 rounded-xl">Cancelar</button>
+                            <button onClick={handleConfirmQuantity} className="flex-1 py-3 bg-clover-600 text-white font-bold rounded-xl hover:bg-clover-700 shadow-lg shadow-clover-200">Confirmar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

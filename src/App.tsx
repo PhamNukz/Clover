@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { InventoryItem, Assignment, NewProduct, BulkAssignment, Employee, PurchaseOrder } from './types';
 import { initialInventory, initialAssignments } from './data/initialData';
 import Sidebar from './components/Sidebar';
@@ -20,8 +20,7 @@ const AuthenticatedApp = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [searchEmployee, setSearchEmployee] = useState('');
+
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   // States

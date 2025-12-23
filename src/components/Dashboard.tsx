@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShoppingCart, Package, Users, AlertTriangle, Calendar, Activity, ArrowRight, Eye, EyeOff, Settings, Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Package, Users, AlertTriangle, Calendar, Activity, Eye, EyeOff, Settings, Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import HealthProductSelectionModal from './HealthProductSelectionModal';
+import ReportModal from './ReportModal';
 import { InventoryItem, Assignment, Role } from '../types';
 import { getTotalStock, getLowStockItems, getExpiringItems } from '../utils/inventory';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -21,6 +22,7 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [showHealthModal, setShowHealthModal] = React.useState(false);
+  const [showReportModal, setShowReportModal] = React.useState(false);
   const [selectedHealthProducts, setSelectedHealthProducts] = React.useState<string[]>(() => {
     const saved = localStorage.getItem('dashboard_health_products');
     return saved ? JSON.parse(saved) : inventory.slice(0, 5).map(i => i.id);
@@ -38,11 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
   };
 
   const handleGenerateReport = () => {
-    const currentYear = new Date().getFullYear();
-    const currentTotal = purchaseOrders.filter(o => o.anio === currentYear).reduce((acc, curr) => acc + curr.montoTotal, 0);
-    const lastYear = currentYear - 1;
-    const lastYearTotal = purchaseOrders.filter(o => o.anio === lastYear).reduce((acc, curr) => acc + curr.montoTotal, 0);
-    alert(`Reporte Comparativo:\n\nAño ${currentYear}: $${currentTotal.toLocaleString()}\nAño ${lastYear}: $${lastYearTotal.toLocaleString()}\n\nDiferencia: $${(currentTotal - lastYearTotal).toLocaleString()}`);
+    setShowReportModal(true);
   };
 
   // --- Data Calculations ---
@@ -232,7 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {pieData.map((entry, index) => (
+                    {pieData.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                     ))}
                   </Pie>
@@ -378,6 +376,14 @@ const Dashboard: React.FC<DashboardProps> = ({ inventory, assignmentsCount, assi
         inventory={inventory}
         selectedProductIds={selectedHealthProducts}
         onSave={handleSaveHealthSelection}
+      />
+
+      <ReportModal
+        show={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        purchaseOrders={purchaseOrders}
+        assignments={assignments}
+        inventory={inventory}
       />
     </div>
   );
