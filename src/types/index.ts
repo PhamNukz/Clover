@@ -3,7 +3,7 @@ export interface Category {
   name: string;
   stock: number;
   minStock?: number;
-  barcode?: string;
+  barcodes?: string[];
   inTransit?: number;
 }
 
@@ -46,7 +46,7 @@ export interface BulkAssignment {
 export interface NewProduct {
   name: string;
   category: string; // Main high-level category
-  categories: { name: string; stock: number; minStock: number; barcode?: string; inTransit?: number }[];
+  categories: { name: string; stock: number; minStock: number; barcodes?: string[]; inTransit?: number }[];
   minStock: number;
   lastPurchaseDate: string;
   expirationDate: string;

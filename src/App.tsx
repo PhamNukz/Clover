@@ -101,7 +101,7 @@ const AuthenticatedApp = () => {
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
     category: 'Generales',
-    categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
+    categories: [{ name: '', stock: 0, minStock: 0, barcodes: [''] }],
     minStock: 0,
     lastPurchaseDate: '',
     expirationDate: '',
@@ -160,7 +160,7 @@ const AuthenticatedApp = () => {
               name: cat.name,
               stock: cat.stock,
               minStock: cat.minStock || 0,
-              barcode: cat.barcode
+              barcodes: cat.barcodes || []
             })),
             minStock: newProduct.minStock,
             lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -181,7 +181,7 @@ const AuthenticatedApp = () => {
           name: cat.name,
           stock: cat.stock,
           minStock: cat.minStock || 0,
-          barcode: cat.barcode
+          barcodes: cat.barcodes || []
         })),
         minStock: newProduct.minStock,
         lastPurchaseDate: newProduct.lastPurchaseDate,
@@ -194,7 +194,7 @@ const AuthenticatedApp = () => {
     setNewProduct({
       name: '',
       category: 'Generales',
-      categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
+      categories: [{ name: '', stock: 0, minStock: 0, barcodes: [''] }],
       minStock: 0,
       lastPurchaseDate: '',
       expirationDate: '',
@@ -211,7 +211,7 @@ const AuthenticatedApp = () => {
         name: c.name,
         stock: c.stock,
         minStock: c.minStock || 0,
-        barcode: c.barcode || ''
+        barcodes: c.barcodes || ['']
       })),
       minStock: product.minStock,
       lastPurchaseDate: product.lastPurchaseDate,
@@ -257,11 +257,11 @@ const AuthenticatedApp = () => {
   const addCategory = () => {
     setNewProduct({
       ...newProduct,
-      categories: [...newProduct.categories, { name: '', stock: 0, minStock: 0, barcode: '' }]
+      categories: [...newProduct.categories, { name: '', stock: 0, minStock: 0, barcodes: [''] }]
     });
   };
 
-  const updateCategory = (index: number, field: 'name' | 'stock' | 'minStock' | 'barcode', value: string | number) => {
+  const updateCategory = (index: number, field: 'name' | 'stock' | 'minStock', value: string | number) => {
     const updatedCategories = [...newProduct.categories];
     updatedCategories[index] = { ...updatedCategories[index], [field]: value };
     setNewProduct({ ...newProduct, categories: updatedCategories });
@@ -273,6 +273,33 @@ const AuthenticatedApp = () => {
         ...newProduct,
         categories: newProduct.categories.filter((_, i) => i !== index)
       });
+    }
+  };
+
+  // Barcode management handlers
+  const addBarcode = (categoryIndex: number) => {
+    const updatedCategories = [...newProduct.categories];
+    const category = updatedCategories[categoryIndex];
+    category.barcodes = [...(category.barcodes || ['']), ''];
+    setNewProduct({ ...newProduct, categories: updatedCategories });
+  };
+
+  const updateBarcode = (categoryIndex: number, barcodeIndex: number, value: string) => {
+    const updatedCategories = [...newProduct.categories];
+    const category = updatedCategories[categoryIndex];
+    const barcodes = [...(category.barcodes || [''])];
+    barcodes[barcodeIndex] = value;
+    category.barcodes = barcodes;
+    setNewProduct({ ...newProduct, categories: updatedCategories });
+  };
+
+  const removeBarcode = (categoryIndex: number, barcodeIndex: number) => {
+    const updatedCategories = [...newProduct.categories];
+    const category = updatedCategories[categoryIndex];
+    const barcodes = category.barcodes || [''];
+    if (barcodes.length > 1) {
+      category.barcodes = barcodes.filter((_, i) => i !== barcodeIndex);
+      setNewProduct({ ...newProduct, categories: updatedCategories });
     }
   };
 
@@ -440,7 +467,7 @@ const AuthenticatedApp = () => {
           id: Date.now().toString() + Math.random(),
           name: entry.productName,
           category: 'Generales',
-          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10, barcode: '', inTransit: 0 }],
+          categories: [{ id: Date.now().toString(), name: entry.category || 'General', stock: entry.quantity, minStock: 10, barcodes: [], inTransit: 0 }],
           minStock: 10, // Default
           lastPurchaseDate: new Date().toISOString().split('T')[0],
           expirationDate: '',
@@ -613,7 +640,7 @@ const AuthenticatedApp = () => {
           setNewProduct({
             name: '',
             category: 'Generales',
-            categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }],
+            categories: [{ name: '', stock: 0, minStock: 0, barcodes: [''] }],
             minStock: 0,
             lastPurchaseDate: '',
             expirationDate: '',
@@ -625,6 +652,9 @@ const AuthenticatedApp = () => {
         onAddCategory={addCategory}
         onUpdateCategory={updateCategory}
         onRemoveCategory={removeCategory}
+        onAddBarcode={addBarcode}
+        onUpdateBarcode={updateBarcode}
+        onRemoveBarcode={removeBarcode}
       />
 
       {/* Bulk Assignment Modal */}
@@ -657,7 +687,7 @@ const AuthenticatedApp = () => {
         onCreateProduct={(name) => {
           // Don't close bulk entry, just open add product
           // setShowBulkEntry(false); 
-          setNewProduct({ ...newProduct, name, category: 'Generales', categories: [{ name: '', stock: 0, minStock: 0, barcode: '' }] });
+          setNewProduct({ ...newProduct, name, category: 'Generales', categories: [{ name: '', stock: 0, minStock: 0, barcodes: [''] }] });
           setShowAddProduct(true);
         }}
       />

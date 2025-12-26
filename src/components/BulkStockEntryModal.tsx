@@ -332,8 +332,8 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                             </div>
                         )}
 
-                        {/* Quick Scan - Only for Entry, Exit, or Transit-Send. Return usually manual selection? Or scan to return works too if we search. */}
-                        {(mode !== 'transit' || transitSubMode === 'send') && (
+                        {/* Quick Scan - Available for all modes including Transit Return */}
+                        {true && (
                             <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Escaneo Rápido (Barcode to PC)</label>
                                 <input
@@ -346,10 +346,10 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
                                             const code = e.currentTarget.value.trim();
                                             if (!code) return;
 
-                                            const foundP = inventory.find(p => p.categories.some(c => c.barcode === code));
+                                            const foundP = inventory.find(p => p.categories.some(c => c.barcodes?.includes(code)));
 
                                             if (foundP) {
-                                                const cat = foundP.categories.find(c => c.barcode === code);
+                                                const cat = foundP.categories.find(c => c.barcodes?.includes(code));
                                                 if (cat) {
                                                     if (askQuantity) {
                                                         // Ask for quantity
@@ -422,7 +422,9 @@ const BulkStockEntryModal: React.FC<BulkStockEntryModalProps> = ({
 
                         <div className="mt-6 flex gap-4">
                             <button onClick={addEntry} className={`flex items-center gap-2 text-${theme}-600 font-medium`}><Plus size={20} /> Otro producto</button>
-                            {mode === 'entry' && <button onClick={() => onCreateProduct('')} className="flex items-center gap-2 text-blue-600 font-medium"><Plus size={20} /> Crear Nuevo</button>}
+                            {!(mode === 'transit' && transitSubMode === 'return') && (
+                                <button onClick={() => onCreateProduct('')} className="flex items-center gap-2 text-blue-600 font-medium"><Plus size={20} /> Crear Nuevo</button>
+                            )}
                         </div>
                     </div>
 
