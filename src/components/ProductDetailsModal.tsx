@@ -94,7 +94,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ product, assi
                                         return (
                                             <tr key={idx}>
                                                 <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cat.name}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">{cat.barcode || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">{cat.barcodes?.join(', ') || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cat.stock}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cat.minStock || 0}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">

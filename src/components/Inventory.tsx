@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, ArrowRightLeft, UserPlus, Printer, Search, ScanBarcode, Settings, ChevronDown } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 import { InventoryItem, Assignment, Role } from '../types';
 import StockTable from './StockTable';
 import ProductDetailsModal from './ProductDetailsModal';
@@ -78,7 +79,7 @@ const Inventory: React.FC<InventoryProps> = ({
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.categories.some(cat => cat.barcode?.includes(searchTerm)); // Search by name or barcode
+      item.categories.some(cat => cat.barcodes?.some(code => code.includes(searchTerm))); // Search by name or barcode
     const matchesCategory = selectedCategory === 'Todas' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -102,6 +103,33 @@ const Inventory: React.FC<InventoryProps> = ({
       sum + item.categories.reduce((cSum, cat) => cSum + cat.stock, 0), 0
     );
 
+    // Generate barcodes mapping
+    // We will generate base64 images for each barcode found
+    const barcodeImages: Record<string, string> = {};
+
+    itemsToPrint.forEach(item => {
+      item.categories.forEach(cat => {
+        if (cat.barcodes && cat.barcodes.length > 0 && cat.barcodes[0]) {
+          try {
+            const canvas = document.createElement('canvas');
+            const code = cat.barcodes[0];
+            JsBarcode(canvas, code, {
+              format: "CODE128",
+              height: 30,
+              width: 1,
+              displayValue: true,
+              fontSize: 10,
+              margin: 0
+            });
+            barcodeImages[code] = canvas.toDataURL("image/png");
+          } catch (e) {
+            console.error("Error generating barcode", e);
+          }
+        }
+      });
+    });
+
+
     const html = `
       <html>
         <head>
@@ -111,10 +139,11 @@ const Inventory: React.FC<InventoryProps> = ({
             h1 { color: #333; border-bottom: 2px solid #16a34a; padding-bottom: 10px; }
             .header { margin-bottom: 20px; display: flex; justify-content: space-between; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
             th { background-color: #f8f9fa; font-weight: bold; }
             tr:nth-child(even) { background-color: #f9f9f9; }
             .total { font-weight: bold; margin-top: 20px; font-size: 1.2em; text-align: right; }
+            .barcode-img { max-width: 150px; height: auto; display: block; }
           </style>
         </head>
         <body>
@@ -135,16 +164,26 @@ const Inventory: React.FC<InventoryProps> = ({
             </thead>
             <tbody>
               ${itemsToPrint.map(item =>
-      item.categories.map((cat, idx) => `
+      item.categories.map((cat, idx) => {
+        const barcodeCode = (cat.barcodes && cat.barcodes.length > 0) ? cat.barcodes[0] : null;
+        const barcodeImgSrc = barcodeCode ? barcodeImages[barcodeCode] : null;
+
+        return `
                   <tr>
                     <td>${idx === 0 ? item.category || '-' : ''}</td>
                     <td>${idx === 0 ? `<strong>${item.name}</strong>` : ''}</td>
                     <td>${cat.name}</td>
                     <td>${cat.stock}</td>
                     <td>${cat.minStock || '-'}</td>
-                    <td>${cat.barcode || '-'}</td>
+                    <td>
+                      ${barcodeImgSrc
+            ? `<img src="${barcodeImgSrc}" alt="${barcodeCode}" class="barcode-img" />`
+            : (barcodeCode || '-')
+          }
+                    </td>
                   </tr>
-                `).join('')
+                `;
+      }).join('')
     ).join('')}
             </tbody>
           </table>
@@ -258,17 +297,16 @@ const Inventory: React.FC<InventoryProps> = ({
             onChange={(e) => {
               setSearchTerm(e.target.value);
               // Check for exact barcode match as we type (or scan)
-              const match = inventory.some(item => item.categories.some(c => c.barcode === e.target.value));
+              const match = inventory.some(item => item.categories.some(cat => cat.barcodes?.some(code => code === e.target.value)));
               if (match && e.target.value.length > 3) {
                 // Beep handled in onKeyDown for enter, or could be here
               }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                const match = inventory.find(item => item.categories.some(c => c.barcode === searchTerm));
+                const match = inventory.find(item => item.categories.some(cat => cat.barcodes?.some(code => code === searchTerm)));
                 if (match) {
-                  const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                  audio.play().catch(() => { });
+                  // Sound removed as per user request
                 }
               }
             }}

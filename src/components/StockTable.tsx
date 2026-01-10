@@ -203,12 +203,12 @@ const StockTable: React.FC<StockTableProps> = ({
               {isVisible('codigos') && (
                 <td className="px-4 py-3 border border-gray-200 text-xs text-gray-500">
                   <div className="flex flex-col gap-1">
-                    {item.categories.filter(c => c.barcode).map((cat, idx) => (
-                      <span key={idx} className="bg-gray-100 px-1 rounded truncate max-w-[120px]" title={`${cat.name}: ${cat.barcode}`}>
-                        {cat.name}: {cat.barcode}
+                    {item.categories.filter(c => c.barcodes && c.barcodes.length > 0 && c.barcodes[0] !== '').map((cat, idx) => (
+                      <span key={idx} className="bg-gray-100 px-1 rounded truncate max-w-[120px]" title={`${cat.name}: ${cat.barcodes?.join(', ')}`}>
+                        {cat.name}: {cat.barcodes?.[0]}
                       </span>
                     ))}
-                    {!item.categories.some(c => c.barcode) && '-'}
+                    {!item.categories.some(c => c.barcodes && c.barcodes.length > 0 && c.barcodes[0] !== '') && '-'}
                   </div>
                 </td>
               )}
